@@ -3,4 +3,4 @@ project(RemoteIIC)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(RemoteIIC main.cpp)
+add_executable(RemoteIIC main.cpp i2c.cpp i2c.h)
