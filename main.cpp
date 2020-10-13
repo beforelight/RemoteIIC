@@ -23,7 +23,7 @@ uint8_t val;
 
 
 int main() {
-	iic.Set(10, 30);
+	iic.Set(100, 300);
 	if(0==inv::Parser(inv_i2c,icm)){
 	    icm->init();
         std::cout << icm->report() << std::endl;

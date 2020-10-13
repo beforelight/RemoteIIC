@@ -28,6 +28,12 @@ public:
         }
     }
 
+    ~remote_i2c(){
+        if(isOpen){
+            close(file);
+        }
+    }
+
 
     int IsOpen() { return isOpen; }
 

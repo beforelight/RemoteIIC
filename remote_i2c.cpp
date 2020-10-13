@@ -32,7 +32,7 @@ int remote_i2c::Write(unsigned char addr, unsigned char reg, const unsigned char
     if (isOpen == 0) { return 1; }
     int rtv = 0;
     struct i2c_rdwr_ioctl_data packets;
-    struct i2c_msg messages[2];
+    struct i2c_msg messages[1];
     messages[0].addr = addr;
     messages[0].flags = 0;
     messages[0].len = len + 1;
