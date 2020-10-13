@@ -2,8 +2,8 @@
 // Created by 17616 on 2020/10/12.
 //
 
-#ifndef REMOTEIIC_I2C_H
-#define REMOTEIIC_I2C_H
+#ifndef REMOTEIIC_REMOTE_I2C_H
+#define REMOTEIIC_REMOTE_I2C_H
 
 #include <stdio.h>
 #include <linux/i2c.h>
@@ -17,11 +17,11 @@
 #define I2C_DEFAULT_TIMEOUT     1
 #define I2C_DEFAULT_RETRY       3
 
-class i2c {
+class remote_i2c {
 public:
-    i2c(const char *i2c_file_name = "/dev/i2c-1") : isOpen(0) {
+    remote_i2c(const char *i2c_file_name = "/dev/remote_i2c-1") : isOpen(0) {
         if ((file = open(i2c_file_name, O_RDWR)) < 0) {
-            printf("Unable to open i2c control file %s\r\n", i2c_file_name);
+            printf("Unable to open remote_i2c control file %s\r\n", i2c_file_name);
         } else {
             isOpen = 1;
             Set();
@@ -57,4 +57,4 @@ private:
 };
 
 
-#endif //REMOTEIIC_I2C_H
+#endif //REMOTEIIC_REMOTE_I2C_H

@@ -2,9 +2,9 @@
 // Created by 17616 on 2020/10/12.
 //
 
-#include "i2c.h"
+#include "remote_i2c.h"
 
-int i2c::Read(unsigned char addr, unsigned char reg, unsigned char *val, unsigned int len) {
+int remote_i2c::Read(unsigned char addr, unsigned char reg, unsigned char *val, unsigned int len) {
     if (isOpen == 0) { return 1; }
     struct i2c_rdwr_ioctl_data packets;
     struct i2c_msg messages[2];
@@ -28,7 +28,7 @@ int i2c::Read(unsigned char addr, unsigned char reg, unsigned char *val, unsigne
 
 }
 
-int i2c::Write(unsigned char addr, unsigned char reg, const unsigned char *val, unsigned int len) {
+int remote_i2c::Write(unsigned char addr, unsigned char reg, const unsigned char *val, unsigned int len) {
     if (isOpen == 0) { return 1; }
     int rtv = 0;
     struct i2c_rdwr_ioctl_data packets;
