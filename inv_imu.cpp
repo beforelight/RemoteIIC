@@ -1,419 +1,31 @@
+﻿//
+// Created by 17616 on 2020/10/14.
 //
-// Created by 17616 on 2020/10/12.
-//
-
-#ifndef REMOTEIIC_INV_MPU_H
-#define REMOTEIIC_INV_MPU_H
-
-#include <cstdint>
-#include <string>
+#include <cstring>
 #include <cmath>
-#include <memory>
-#include "inv_mpu_def.h"
+#include"inv_imu.h"
 
 namespace inv {
-    class i2c_interface {
-    public:
-        i2c_interface(void *_context,
-
-                      int (*_read)(void *context,
-                                   unsigned char addr, unsigned char reg,
-                                   unsigned char *val, unsigned int len),
-
-                      int (*_write)(void *context,
-                                    unsigned char addr, unsigned char reg,
-                                    const unsigned char *val, unsigned int len),
-                      int (*_readNonBlocking)(void *context,
-                                              unsigned char addr, unsigned char reg,
-                                              unsigned char *val, unsigned int len),
-
-                      int (*_writeNonBlocking)(void *context,
-                                               unsigned char addr, unsigned char reg,
-                                               const unsigned char *val, unsigned int len))
-                : context(_context),read(_read),write(_write),
-                readNonBlocking(_readNonBlocking),writeNonBlocking(_writeNonBlocking){}
-
-        int Read(unsigned char addr, unsigned char reg,
-                 unsigned char *val, unsigned int len) {
-            return (*read)(context, addr, reg, val, len);
-        }
-
-        int Write(unsigned char addr, unsigned char reg,
-                  const unsigned char *val, unsigned int len) {
-            return (*write)(context, addr, reg, val, len);
-        }
-
-        int ReadNonBlocking(unsigned char addr, unsigned char reg,
-                            unsigned char *val, unsigned int len) {
-            return (*readNonBlocking)(context, addr, reg, val, len);
-        }
-
-        int WriteNonBlocking(unsigned char addr, unsigned char reg,
-                             const unsigned char *val, unsigned int len) {
-            return (*writeNonBlocking)(context, addr, reg, val, len);
-        }
-
-    protected:
-        void *context;
-
-        int (*read)(void *context,
-                    unsigned char addr, unsigned char reg,
-                    unsigned char *val, unsigned int len);
-
-        int (*write)(void *context,
-                     unsigned char addr, unsigned char reg,
-                     const unsigned char *val, unsigned int len);
-
-        int (*readNonBlocking)(void *context,
-                               unsigned char addr, unsigned char reg,
-                               unsigned char *val, unsigned int len);
-
-        int (*writeNonBlocking)(void *context,
-                                unsigned char addr, unsigned char reg,
-                                const unsigned char *val, unsigned int len);
-
-    };
-
-    struct config {
-        enum mpu_accel_fs {    // In the ACCEL_CONFIG (0x1C) register, the full scale select  bits are :
-            MPU_FS_2G = 0,    // 00 = 2G
-            MPU_FS_4G,        // 01 = 4
-            MPU_FS_8G,        // 10 = 8
-            MPU_FS_16G,        // 11 = 16
-            NUM_MPU_AFS
-        } accel_fs;
-
-        /** @brief Allowed value for accel DLPF bandwidth (ACCEL_CONFIG2 (0x1D) register) */
-        enum mpu_accel_bw {        // In the ACCEL_CONFIG2 (0x1D) register, the BW setting bits are :
-            MPU_ABW_218 = 1,    ///< 001 = 218 Hz
-            MPU_ABW_99,            ///< 010 = 99 Hz
-            MPU_ABW_45,            ///< 011 = 45 Hz
-            MPU_ABW_21,            ///< 100 = 21 Hz
-            MPU_ABW_10,            ///< 101 = 10 Hz
-            MPU_ABW_5,            ///< 110 = 5 Hz
-            MPU_ABW_420,        ///< 111 = 420 Hz
-            NUM_MPU_ABW
-        } accel_bw;
-
-        enum mpu_gyro_fs {        // In the GYRO_CONFIG register, the fS_SEL bits are :
-            MPU_FS_250dps = 0,    // 00 = 250
-            MPU_FS_500dps,        // 01 = 500
-            MPU_FS_1000dps,        // 10 = 1000
-            MPU_FS_2000dps,        // 11 = 2000
-            NUM_MPU_GFS
-        } gyro_fs;
-
-        /** @brief Allowed value for gyro DLPF bandwidth (CONFIG (0x1A) register) */
-        enum mpu_gyro_bw {   // In the CONFIG register, the  BW setting bits are :
-            MPU_GBW_250 = 0, ///< 000 = 250 Hz
-            MPU_GBW_176 = 1, ///< 001 = 176 Hz
-            MPU_GBW_92,         ///< 010 = 92 Hz
-            MPU_GBW_41,         ///< 011 = 41 Hz
-            MPU_GBW_20,         ///< 100 = 20 Hz
-            MPU_GBW_10,         ///< 101 = 10 Hz
-            MPU_GBW_5,         ///< 110 = 5 Hz
-            NUM_MPU_GBW
-        } gyro_bw;
-
-        config(mpu_accel_fs _accel_fs = MPU_FS_8G, mpu_accel_bw _accel_bw = MPU_ABW_99,
-               mpu_gyro_fs _gyro_gs = MPU_FS_2000dps, mpu_gyro_bw _gyro_bw = MPU_GBW_92) :
-                accel_fs(_accel_fs), accel_bw(_accel_bw),
-                gyro_fs(_gyro_gs), gyro_bw(_gyro_bw) {}
-    };
-
-    class imu {
-    public:
-        imu(i2c_interface &_i2c) : i2c(_i2c), isOpen(false), addr(0), cfg(config()) {}
-
-        virtual int init(config _cfg = config()) = 0;
-
-        virtual bool detect() = 0;
-
-        virtual bool self_test() = 0;
-
-        virtual void set_bias() = 0;
-
-        virtual int converter(float *acc_x, float *acc_y, float *acc_z,
-                              float *gyro_x, float *gyro_y, float *gyro_z) = 0;
-
-        virtual int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) = 0;
-
-        virtual int converter(float *mag_x, float *mag_y, float *mag_z) = 0;
-
-        virtual int converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) = 0;
-
-        virtual int converter(float *temp) = 0;
-
-        virtual int read_sensor_blocking() = 0;
-
-        virtual int read_sensor_NonBlocking() = 0;
-
-        virtual std::string report() = 0;
-
-    public:
-        bool is_open() { return isOpen; };
-
-    protected:
-        int write_reg(uint8_t reg, const uint8_t val) { return i2c.Write(addr, reg, &val, 1); };
-
-        int read_reg(uint8_t reg, uint8_t *val) { return i2c.Read(addr, reg, val, 1); };
-
-    protected:
-        uint8_t addr;
-        bool isOpen;
-        config cfg;
-        i2c_interface &i2c;
-    };
-
-    class icm20602 : public imu {
-    public:
-        icm20602(i2c_interface &_i2c) : imu(_i2c) {}
-
-        int init(config _cfg = config());
-
-        bool detect();
-
-        bool self_test();
-
-        void set_bias();
-
-        int converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z);
-
-        int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
-
-        int converter(float *mag_x, float *mag_y, float *mag_z) {
-            (void) mag_x, (void) mag_y, (void) mag_z;
-            return 0;
-        }
-
-        int converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
-            (void) mag_x, (void) mag_y, (void) mag_z;
-            return 0;
-        }
-
-        int converter(float *temp);
-
-        int read_sensor_blocking() {
-            return i2c.Read(addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
-        }
-
-        int read_sensor_NonBlocking() {
-            return i2c.ReadNonBlocking(addr,
-                                       (uint8_t) icm20602_RegMap::ACCEL_XOUT_H,
-                                       buf, 14);
-        }
-
-        std::string report() {
-            std::string rtv;
-            rtv += "model:icm20602\t";
-            rtv += "addr:";
-            rtv += std::to_string((int) addr);
-            rtv += '\t';
-            return rtv;
-        }
-
-    public:
-        int data_rdy() {
-            uint8_t val;
-            read_reg((uint8_t) icm20602_RegMap::INT_STATUS, &val);
-            return val & 0x01;
-        }
-
-        const int DEF_ST_PRECISION = 1000;
-        const int DEF_GYRO_CT_SHIFT_DELTA = 500;
-        const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
-        /* Gyro Offset Max Value (dps) */
-        const int DEF_GYRO_OFFSET_MAX = 20;
-        /* Gyro Self Test Absolute Limits ST_AL (dps) */
-        const int DEF_GYRO_ST_AL = 60;
-        /* Accel Self Test Absolute Limits ST_AL (mg) */
-        const int DEF_ACCEL_ST_AL_MIN = 225;
-        const int DEF_ACCEL_ST_AL_MAX = 675;
-
-    protected:
-        uint8_t buf[14];
-        float accel_unit;
-        float gyro_unit;
-    };
-
-    class mpu6050 : public icm20602 {
-    public:
-        mpu6050(i2c_interface &_i2c) : icm20602(_i2c) {}
-
-        int init(config _cfg = config()) {
-            return icm20602::init(_cfg);
-        }
-
-        bool detect();
-
-        bool self_test();
-
-        void set_bias() { return; }
-
-        int converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z) {
-            return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-        }
-
-        int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) {
-            return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-        }
-
-        int converter(float *mag_x, float *mag_y, float *mag_z) {
-            (void) mag_x, (void) mag_y, (void) mag_z;
-            return 0;
-        }
-
-        int converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
-            (void) mag_x, (void) mag_y, (void) mag_z;
-            return 0;
-        }
-
-        int converter(float *temp) {
-            if (temp) {
-                *temp = ((uint16_t) (icm20602::buf[6] << 8)
-                         | icm20602::buf[7] - 521) / 340.0 + 35;
-            }
-            return 0;
-        }
-
-        int read_sensor_blocking() {
-            return icm20602::read_sensor_blocking();
-        }
-
-        int read_sensor_NonBlocking() {
-            return icm20602::read_sensor_NonBlocking();
-        }
-
-        std::string report() {
-            std::string rtv;
-            rtv += "model:mpu6050\t";
-            rtv += "addr:";
-            rtv += std::to_string((int) addr);
-            rtv += '\t';
-            return rtv;
-        }
-    };
-
-
-    class mpu9250 : public icm20602 {
-    public:
-        mpu9250(i2c_interface &_i2c) : icm20602(_i2c) {}
-
-        int init(config _cfg = config());
-
-        bool detect();
-
-        bool self_test();
-
-        void set_bias();
-
-        int converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z);
-
-        int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
-
-        int converter(float *mag_x, float *mag_y, float *mag_z);
-
-        int converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
-
-        int converter(float *temp);
-
-        int read_sensor_blocking() {
-            return i2c.Read(addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
-        }
-
-        int read_sensor_NonBlocking() {
-            return i2c.ReadNonBlocking(addr,
-                                       (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H,
-                                       buf, 22);
-        }
-
-        std::string report() {
-            std::string rtv;
-            rtv += "model:mpu9250\t";
-            rtv += "addr:";
-            rtv += std::to_string((int) addr);
-            rtv += '\t';
-
-            rtv += "magnetometer:ak8963\t";
-            rtv += "ID:";
-            rtv += std::to_string((int) ak8963_DeviceID);
-            rtv += '\t';
-            rtv += "INF:";
-            rtv += std::to_string((int) ak8963_Information);
-            rtv += '\t';
-            return rtv;
-        }
-
-    public:
-        int sub_i2c_read(unsigned char addr,
-                         unsigned char reg,
-                         unsigned char *val,
-                         unsigned int len = 1);
-
-        int sub_i2c_write(unsigned char addr,
-                          unsigned char reg,
-                          const unsigned char *val,
-                          unsigned int len = 1);
-
-        const int MPU9250_I2C_SLV4_EN = 0x80;
-        const int MPU9250_I2C_SLV4_DONE = 0x40;
-        const int MPU9250_I2C_SLV4_NACK = 0x10;
-
-        const int MPU9250_AK8963_I2C_ADDR = 0x0C;
-        const int MPU9250_AK8963_POWER_DOWN = 0x10;
-        const int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
-        const int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;
-        const int MPU9250_AK8963_CONTINUOUS_MEASUREMENT = 0x16; //MODE 2
-        const int MPU9250_AK8963_DATA_READY = (0x01);
-        const int MPU9250_AK8963_DATA_OVERRUN = (0x02);
-        //#define MPU9250_AK8963_OVERFLOW        (0x80)
-        const int MPU9250_AK8963_OVERFLOW = (0x08);
-        const int MPU9250_AK8963_DATA_ERROR = (0x40);
-        const int MPU9250_AK8963_CNTL2_SRST = 0x01;
-
-
-    private:
-        uint8_t buf[22];
-        uint8_t ak8963_DeviceID;
-        uint8_t ak8963_Information;
-        const float mag_unit = 0.15f;;//固定量程4900uT 0.15µT/LSB
-        float AK8963_ASA[3];
-    };
-
-    int Parser(i2c_interface &_i2c,std::shared_ptr<imu>& ptr){
-        if(icm20602(_i2c).detect()){
+    int Parser(i2c_interface &_i2c, std::shared_ptr<imu> &ptr) {
+        if (icm20602(_i2c).detect()) {
             ptr.reset(new icm20602(_i2c));
             return 0;
-        }else if(mpu6050(_i2c).detect()){
+        } else if (mpu6050(_i2c).detect()) {
             ptr.reset(new mpu6050(_i2c));
             return 0;
-        }else if(mpu9250(_i2c).detect()){
+        } else if (mpu9250(_i2c).detect()) {
             ptr.reset(new mpu9250(_i2c));
             return 0;
         }
         return -1;
     }
 
+
     int icm20602::init(config _cfg) {
         cfg = _cfg;
         if (!detect()) { return -1; }
-        uint8_t val;
-        //复位
-        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x80);
-        //等待复位成功
-        do {
-            read_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
-        } while (val&0x80==0x80);
-
-        //唤起睡眠
-        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x1);
+        //软复位
+        soft_reset();
 
         //打开所有传感器
         write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_2, 0);
@@ -563,6 +175,45 @@ namespace inv {
         return 0;
     }
 
+     int icm20602::read_sensor_blocking() {
+        return i2c.Read(addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+    }
+
+     int icm20602::read_sensor_NonBlocking() {
+        return i2c.ReadNonBlocking(addr,
+                                   (uint8_t) icm20602_RegMap::ACCEL_XOUT_H,
+                                   buf, 14);
+    }
+
+     std::string icm20602::report() {
+        std::string rtv;
+        rtv += "model:icm20602\t";
+        rtv += "addr:";
+        rtv += std::to_string((int) addr);
+        rtv += '\t';
+        return rtv;
+    }
+
+    void icm20602::soft_reset(void) {
+        if (!detect()) { return; }
+        uint8_t val;
+        //复位
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x80);
+        //等待复位成功
+        do {
+            read_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+        } while (val != 0x41);
+
+        //唤起睡眠
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x1);
+    }
+
+     int icm20602::data_rdy() {
+        uint8_t val;
+        read_reg((uint8_t) icm20602_RegMap::INT_STATUS, &val);
+        return val & 0x01;
+    }
+
     bool icm20602::self_test() {
         if (!is_open()) { return false; }
         config backup_cfg = cfg;
@@ -588,6 +239,7 @@ namespace inv {
         memset(accel_bias_regular, 0, sizeof(accel_bias_regular));
 
         int times;
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         while (times--) {
             while (0 == data_rdy()) {}
@@ -598,7 +250,7 @@ namespace inv {
                 accel_bias_regular[i] += abuf[i];
             }
         }
-
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         read_reg((uint8_t) icm20602_RegMap::GYRO_CONFIG, &val);
         write_reg((uint8_t) icm20602_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
@@ -693,7 +345,9 @@ namespace inv {
             for (i = 0; i < 3; i++) {
                 if (abs(gyro_bias_regular[i]) > DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION)
                     //陀螺仪自检没过
-                { gyro_result = 1; }
+                {
+                    gyro_result = 1;
+                }
             }
         }
 
@@ -716,6 +370,7 @@ namespace inv {
         i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
                   (uint8_t *) gbuf, sizeof(gbuf));
         int times;
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 256;
         while (times--) {
             while (0 == data_rdy()) {}
@@ -730,6 +385,19 @@ namespace inv {
         }
         i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
                   (uint8_t *) gbuf, sizeof(gbuf));
+    }
+    icm20602::icm20602(i2c_interface &_i2c) : imu(_i2c) {
+        memset(buf,0,sizeof(buf));
+    }
+
+    int icm20602::converter(float *mag_x, float *mag_y, float *mag_z) {
+        (void) mag_x, (void) mag_y, (void) mag_z;
+        return 0;
+    }
+
+    int icm20602::converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
+        (void) mag_x, (void) mag_y, (void) mag_z;
+        return 0;
     }
 
     bool mpu6050::detect() {
@@ -771,6 +439,7 @@ namespace inv {
 
 
         int times;
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         while (times--) {
             while (0 == icm20602::data_rdy()) {}
@@ -782,6 +451,7 @@ namespace inv {
             }
         }
 
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         read_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, &val);
         write_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
@@ -847,6 +517,70 @@ namespace inv {
             return false;
         }
 
+    }
+
+    int mpu6050::init(config _cfg) {
+        return icm20602::init(_cfg);
+    }
+
+    int mpu6050::converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
+        return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
+    }
+
+    int mpu6050::converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y,
+                           int16_t *gyro_z) {
+        return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
+    }
+
+    int mpu6050::converter(float *mag_x, float *mag_y, float *mag_z) {
+        (void) mag_x, (void) mag_y, (void) mag_z;
+        return 0;
+    }
+
+    int mpu6050::converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
+        (void) mag_x, (void) mag_y, (void) mag_z;
+        return 0;
+    }
+
+    int mpu6050::converter(float *temp) {
+        if (temp) {
+            *temp = ((uint16_t) (icm20602::buf[6] << 8)
+                     | icm20602::buf[7] - 521) / 340.0 + 35;
+        }
+        return 0;
+    }
+
+    int mpu6050::read_sensor_blocking() {
+        return icm20602::read_sensor_blocking();
+    }
+
+    int mpu6050::read_sensor_NonBlocking() {
+        return icm20602::read_sensor_NonBlocking();
+    }
+
+    std::string mpu6050::report() {
+        std::string rtv;
+        rtv += "model:mpu6050\t";
+        rtv += "addr:";
+        rtv += std::to_string((int) addr);
+        rtv += '\t';
+        return rtv;
+    }
+
+    void mpu6050::set_bias() { return; }
+
+    void mpu6050::soft_reset(void) {
+        if (!detect()) { return; }
+        uint8_t val;
+        //复位
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x80);
+        //等待复位成功
+        do {
+            read_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+        } while (val != 0x40);
+
+        //唤起睡眠
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x0);
     }
 
 
@@ -916,6 +650,23 @@ namespace inv {
         }
     }
 
+     std::string mpu9250::report() {
+        std::string rtv;
+        rtv += "model:mpu9250\t";
+        rtv += "addr:";
+        rtv += std::to_string((int) addr);
+        rtv += '\t';
+
+        rtv += "magnetometer:ak8963\t";
+        rtv += "ID:";
+        rtv += std::to_string((int) ak8963_DeviceID);
+        rtv += '\t';
+        rtv += "INF:";
+        rtv += std::to_string((int) ak8963_Information);
+        rtv += '\t';
+        return rtv;
+    }
+
     int mpu9250::sub_i2c_read(unsigned char addr, unsigned char reg, unsigned char *val,
                               unsigned int len) {
         uint8_t index = 0;
@@ -932,7 +683,7 @@ namespace inv {
             write_reg((uint8_t) mpu9250_RegMap::I2C_SLV4_CTRL, tmp);
             do {
                 if (timeout++ > 5000) {
-//                    inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 Read error: timeout", s->elder.name);
+                    //                    inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 Read error: timeout", s->elder.name);
                     return -2;
                 }
                 read_reg((uint8_t) mpu9250_RegMap::I2C_MST_STATUS, &status);
@@ -960,13 +711,13 @@ namespace inv {
             write_reg((uint8_t) mpu9250_RegMap::I2C_SLV4_CTRL, tmp);
             do {
                 if (timeout++ > 5000) {
-//                    inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 write error: timeout", s->elder.name);
+                    //                    inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 write error: timeout", s->elder.name);
                     return -2;
                 }
                 read_reg((uint8_t) mpu9250_RegMap::I2C_MST_STATUS, &status);
             } while ((status & MPU9250_I2C_SLV4_DONE) == 0);
             if (status & MPU9250_I2C_SLV4_NACK) {
-//                inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 write error: NoACK", s->elder.name);
+                //                inv_icm20602_message(inv_icm20602_warning, "%s:MPU9250-AK8963 write error: NoACK", s->elder.name);
                 return -3;
             }
             index++;
@@ -1010,6 +761,7 @@ namespace inv {
         memset(accel_bias_regular, 0, sizeof(accel_bias_regular));
 
         int times;
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         while (times--) {
             while (0 == icm20602::data_rdy()) {}
@@ -1021,6 +773,7 @@ namespace inv {
             }
         }
 
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 200;
         read_reg((uint8_t) mpu9250_RegMap::GYRO_CONFIG, &val);
         write_reg((uint8_t) mpu9250_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
@@ -1118,7 +871,9 @@ namespace inv {
                 if (abs(gyro_bias_regular[i]) > icm20602::DEF_GYRO_OFFSET_MAX * (32768 / 250) *
                                                 icm20602::DEF_ST_PRECISION)
                     //陀螺仪自检没过
-                { gyro_result = 1; }
+                {
+                    gyro_result = 1;
+                }
             }
         }
 
@@ -1141,6 +896,7 @@ namespace inv {
         i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
                   (uint8_t *) gbuf, sizeof(gbuf));
         int times;
+        times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 256;
         while (times--) {
             while (0 == icm20602::data_rdy()) {}
@@ -1226,5 +982,32 @@ namespace inv {
         if (temp) { *temp = ((uint16_t) (buf[6] << 8) | buf[7]) / 333.87 + 21.0f; }
         return 0;
     }
+
+    int mpu9250::read_sensor_blocking() {
+        return i2c.Read(addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+    }
+
+    int mpu9250::read_sensor_NonBlocking() {
+        return i2c.ReadNonBlocking(addr,
+                                   (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H,
+                                   buf, 22);
+    }
+
+    mpu9250::mpu9250(i2c_interface &_i2c) : icm20602(_i2c) {
+        memset(buf,0,sizeof(buf));
+    }
+
+    void mpu9250::soft_reset(void) {
+        if (!detect()) { return; }
+        uint8_t val;
+        //复位
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x80);
+        //等待复位成功
+        do {
+            read_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+        } while (val != 0x1);
+
+        //唤起睡眠
+        write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x1);
+    }
 }
-#endif //REMOTEIIC_INV_MPU_H

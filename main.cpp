@@ -1,6 +1,6 @@
 #include <iostream>
 #include"remote_i2c.h"
-#include"inv_mpu.h"
+#include"inv_imu.h"
 int remote_i2c_read(void *context,
             unsigned char addr, unsigned char reg,
             unsigned char *val, unsigned int len){
@@ -29,6 +29,10 @@ int main() {
 	    usleep(100000);
 	    icm->read_sensor_blocking();
 	    icm->converter(acc,acc+1,acc+2,NULL,NULL,NULL);
+
+//	    icm.get();
+//	    *icm = inv::imu(inv_i2c);
+
         printf(icm->report().c_str()) ;
         printf("\r\naccel %.3f %.3f %.3f \r\n",acc[0],acc[1],acc[2]);
     }
