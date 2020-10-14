@@ -174,7 +174,7 @@ namespace inv {
         int soft_reset(void);
 
     public:
-        int data_rdy();
+        bool data_rdy();
 
     public:
         const int DEF_ST_PRECISION = 1000;
