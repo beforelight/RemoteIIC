@@ -377,6 +377,7 @@ namespace inv {
         memset(gbuf, 0, sizeof(gbuf));
         res|=i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
                   (uint8_t *) gbuf, sizeof(gbuf));
+        if (res != 0) { return res; }
         int times;
         times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 256;
@@ -388,6 +389,7 @@ namespace inv {
                 gyro_bias_regular[i] += gbuf[i];
             }
         }
+        if (res != 0) { return res; }
         for (int i = 0; i < 3; ++i) {
             gbuf[i] = -gyro_bias_regular[i] / 256;
         }
