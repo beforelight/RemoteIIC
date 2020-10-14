@@ -123,7 +123,7 @@ namespace inv {
     public:
         virtual int init(config _cfg = config()) = 0;
         virtual bool detect() = 0;
-        virtual bool self_test() = 0;
+        virtual int self_test() = 0;
         virtual int set_bias() = 0;
         virtual int converter(float *acc_x, float *acc_y, float *acc_z,
                               float *gyro_x, float *gyro_y, float *gyro_z) = 0;
@@ -159,7 +159,7 @@ namespace inv {
         icm20602(i2c_interface &_i2c);
         int init(config _cfg = config());
         bool detect();
-        bool self_test();
+        int self_test();
         int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
@@ -199,7 +199,7 @@ namespace inv {
         mpu6050(i2c_interface &_i2c) : icm20602(_i2c) {}
         int init(config _cfg = config());
         bool detect();
-        bool self_test();
+        int self_test();
         int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
@@ -222,7 +222,7 @@ namespace inv {
         mpu9250(i2c_interface &_i2c);
         int init(config _cfg = config());
         bool detect();
-        bool self_test();
+        int self_test();
         int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);

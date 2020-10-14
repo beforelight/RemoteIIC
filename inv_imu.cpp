@@ -220,8 +220,8 @@ namespace inv {
         return (val & 0x01) == 0x01;
     }
 
-    bool icm20602::self_test() {
-        if (!is_open()) { return false; }
+    int icm20602::self_test() {
+        if (!is_open()) { return -1; }
         int res = 0;
         config backup_cfg = cfg;
         config st_cfg;
@@ -231,7 +231,7 @@ namespace inv {
         st_cfg.gyro_bw = config::MPU_GBW_92;
         if (0 != init(st_cfg)) {
             init(backup_cfg);
-            return false;
+            return -1;
         }
         int32_t gyro_bias_st[3], gyro_bias_regular[3];
         int32_t accel_bias_st[3], accel_bias_regular[3];
@@ -362,11 +362,7 @@ namespace inv {
 
         //恢复原来的配置
         res |= init(backup_cfg);
-        if (gyro_result == 0 && accel_result == 0 && res == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return res | (gyro_result << 1) | accel_result;
     }
 
     int icm20602::set_bias() {
@@ -430,8 +426,8 @@ namespace inv {
         return false;
     }
 
-    bool mpu6050::self_test() {
-        if (!is_open()) { return false; }
+    int mpu6050::self_test() {
+        if (!is_open()) { return -1; }
         int res = 0;
         config backup_cfg = cfg;
         config st_cfg;
@@ -439,7 +435,7 @@ namespace inv {
         st_cfg.accel_fs = config::MPU_FS_8G;
         if (0 != init(st_cfg)) {
             init(backup_cfg);
-            return false;
+            return -1;
         }
         int32_t gyro_bias_st[3], gyro_bias_regular[3];
         int32_t accel_bias_st[3], accel_bias_regular[3];
@@ -469,7 +465,7 @@ namespace inv {
         }
 
         times = 100;
-        while (times--) { while(!data_rdy()) {}}//丢弃前100个数据
+        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
         times = 200;
         res |= read_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, &val);
         res |= write_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
@@ -529,12 +525,7 @@ namespace inv {
 
         //恢复原来的配置
         res |= init(backup_cfg);
-        if (gyro_result == 0 && accel_result == 0 && res == 0) {
-            return true;
-        } else {
-            return false;
-        }
-
+        return (gyro_result << 1) | accel_result | res;
     }
 
     int mpu6050::init(config _cfg) {
@@ -758,8 +749,8 @@ namespace inv {
         return false;
     }
 
-    bool mpu9250::self_test() {
-        if (!is_open()) { return false; }
+    int mpu9250::self_test() {
+        if (!is_open()) { return -1; }
         int res = 0;
         config backup_cfg = cfg;
         config st_cfg;
@@ -769,7 +760,7 @@ namespace inv {
         st_cfg.gyro_bw = config::MPU_GBW_92;
         if (0 != init(st_cfg)) {
             init(backup_cfg);
-            return false;
+            return -1;
         }
         int32_t gyro_bias_st[3], gyro_bias_regular[3];
         int32_t accel_bias_st[3], accel_bias_regular[3];
@@ -904,11 +895,7 @@ namespace inv {
 
         //恢复原来的配置
         res |= init(backup_cfg);
-        if (gyro_result == 0 && accel_result == 0 && res == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return (gyro_result << 1) | accel_result | res;
     }
 
     int mpu9250::set_bias() {
