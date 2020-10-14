@@ -36,7 +36,7 @@ int main() {
         printf(icm->report().c_str()) ;
         printf("\r\naccel %.3f %.3f %.3f \r\n",acc[0],acc[1],acc[2]);
     }
-    printf("helo\r\n");
+    printf("hello\r\n");
 	return 0;
 }
 

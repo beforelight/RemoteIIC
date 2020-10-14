@@ -9,7 +9,14 @@
 #include <string>
 #include <memory>
 #include "inv_mpu_def.h"
-
+#ifdef INV_IMU_DEBUG
+#ifdef __linux__
+#include<iostream>
+#define INV_PRINTF printf
+#endif
+#else
+#define INV_PRINTF(...)
+#endif
 namespace inv {
     class i2c_interface {
     public:
@@ -128,7 +135,7 @@ namespace inv {
         virtual int read_sensor_blocking() = 0;
         virtual int read_sensor_NonBlocking() = 0;
         virtual std::string report() = 0;
-        virtual void soft_reset(void) = 0;
+        virtual int soft_reset(void) = 0;
 
     public:
         bool is_open() { return isOpen; };
@@ -164,7 +171,7 @@ namespace inv {
         int read_sensor_blocking();
         int read_sensor_NonBlocking();
         std::string report();
-        void soft_reset(void);
+        int soft_reset(void);
 
     public:
         int data_rdy();
@@ -204,7 +211,7 @@ namespace inv {
         int read_sensor_blocking();
         int read_sensor_NonBlocking();
         std::string report();
-        void soft_reset(void);
+        int soft_reset(void);
 
     public:
     };
@@ -227,7 +234,7 @@ namespace inv {
         int read_sensor_blocking();
         int read_sensor_NonBlocking();
         std::string report();
-        void soft_reset(void);
+        int soft_reset(void);
 
     public:
         int sub_i2c_read(unsigned char addr,
