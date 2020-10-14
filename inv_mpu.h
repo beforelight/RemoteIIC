@@ -212,6 +212,7 @@ namespace inv {
             rtv += "addr:";
             rtv += std::to_string((int) addr);
             rtv += '\t';
+            return rtv;
         }
 
     public:
@@ -294,6 +295,7 @@ namespace inv {
             rtv += "addr:";
             rtv += std::to_string((int) addr);
             rtv += '\t';
+            return rtv;
         }
     };
 
@@ -346,6 +348,7 @@ namespace inv {
             rtv += "INF:";
             rtv += std::to_string((int) ak8963_Information);
             rtv += '\t';
+            return rtv;
         }
 
     public:
@@ -389,10 +392,10 @@ namespace inv {
             ptr.reset(new icm20602(_i2c));
             return 0;
         }else if(mpu6050(_i2c).detect()){
-            ptr.reset(new icm20602(_i2c));
+            ptr.reset(new mpu6050(_i2c));
             return 0;
         }else if(mpu9250(_i2c).detect()){
-            ptr.reset(new icm20602(_i2c));
+            ptr.reset(new mpu9250(_i2c));
             return 0;
         }
         return -1;
@@ -407,7 +410,7 @@ namespace inv {
         //等待复位成功
         do {
             read_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
-        } while (val != 0x41);
+        } while (val&0x80==0x80);
 
         //唤起睡眠
         write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x1);
@@ -733,10 +736,14 @@ namespace inv {
         uint8_t val;
         addr = 0x68;
         if (0 != read_reg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x68 == val) { return true; }
+        if (0x68 == val) {
+            return true;
+        }
         addr = 0x69;
         if (0 != read_reg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x68 == val) { return true; }
+        if (0x68 == val) {
+            return true;
+        }
         return false;
     }
 

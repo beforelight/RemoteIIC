@@ -1,50 +1,42 @@
-//
-// Created by 17616 on 2020/10/12.
-//
-
-#include "remote_i2c.h"
+#include"remote_i2c.h"
 
 int remote_i2c::Read(unsigned char addr, unsigned char reg, unsigned char *val, unsigned int len) {
-    if (isOpen == 0) { return 1; }
-    struct i2c_rdwr_ioctl_data packets;
-    struct i2c_msg messages[2];
-    messages[0].addr = addr;
-    messages[0].flags = 0;
-    messages[0].len = sizeof(reg);
-    messages[0].buf = &reg;
+    if (ioctl(fd, I2C_SLAVE, addr) < 0) {
+        fprintf(stderr,
+                "Error: Could not set address to 0x%02x: %s\n",
+                addr, strerror(errno));
+        return -errno;
+    }
 
-    messages[1].addr = addr;
-    messages[1].flags = I2C_M_RD/* | I2C_M_NOSTART*/;
-    messages[1].len = len;
-    messages[1].buf = val;
-
-    packets.msgs = messages;
-    packets.nmsgs = 2;
-    if (ioctl(file, I2C_RDWR, &packets) < 0) {
-        printf("Unable to send data\r\n");
-        return 1;
+    while(len--) {
+//        if (res >= 0) {
+//            res = i2c_smbus_write_byte(fd, reg);
+//            reg++;
+//            if (res < 0)
+//            {
+//                fprintf(stderr, "Warning - write failed\n");
+//                return -1;
+//            }
+//        }
+        *val = i2c_smbus_read_byte_data(fd,reg);
+        reg++;
+        val++;
     }
     return 0;
-
 }
 
 int remote_i2c::Write(unsigned char addr, unsigned char reg, const unsigned char *val, unsigned int len) {
-    if (isOpen == 0) { return 1; }
-    int rtv = 0;
-    struct i2c_rdwr_ioctl_data packets;
-    struct i2c_msg messages[1];
-    messages[0].addr = addr;
-    messages[0].flags = 0;
-    messages[0].len = len + 1;
-    messages->buf = (unsigned char *) malloc(len + 1);
-    messages->buf[0]=reg;
-    memcpy(&messages->buf[1],val,len);
-    packets.msgs = messages;
-    packets.nmsgs = 1;
-    if (ioctl(file, I2C_RDWR, &packets) < 0) {
-        printf("Unable to send data\r\n");
-        rtv = 1;
+    if (ioctl(fd, I2C_SLAVE, addr) < 0) {
+        fprintf(stderr,
+                "Error: Could not set address to 0x%02x: %s\n",
+                addr, strerror(errno));
+        return -errno;
     }
-    free(messages->buf);
-    return rtv;
+
+    while(len--) {
+        i2c_smbus_write_byte_data(fd,reg,*val);
+        reg++;
+        val++;
+    }
+    return 0;
 }

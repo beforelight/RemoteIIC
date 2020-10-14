@@ -21,13 +21,16 @@ uint8_t val;
 
 //inv::mpu9250<remote_i2c> imu(iic);
 
+float acc[3];
 
 int main() {
-	iic.Set(100, 300);
 	if(0==inv::Parser(inv_i2c,icm)){
 	    icm->init();
-        std::cout << icm->report() << std::endl;
-        std::cout << "set\r\n" << std::endl;
+	    usleep(100000);
+	    icm->read_sensor_blocking();
+	    icm->converter(acc,acc+1,acc+2,NULL,NULL,NULL);
+        printf(icm->report().c_str()) ;
+        printf("\r\naccel %.3f %.3f %.3f \r\n",acc[0],acc[1],acc[2]);
     }
     printf("helo\r\n");
 	return 0;
