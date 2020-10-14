@@ -367,21 +367,22 @@ namespace inv {
         }
     }
 
-    void icm20602::set_bias() {
-        if (!is_open()) { return; }
+    int icm20602::set_bias() {
+        int res = 0;
+        if (!is_open()) { return -1; }
         int32_t gyro_bias_regular[3];
         int16_t gbuf[3];
         uint8_t val;
         memset(gyro_bias_regular, 0, sizeof(gyro_bias_regular));
         memset(gbuf, 0, sizeof(gbuf));
-        i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
+        res|=i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
                   (uint8_t *) gbuf, sizeof(gbuf));
         int times;
         times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 256;
         while (times--) {
             while (0 == data_rdy()) {}
-            read_sensor_blocking();
+            res|=read_sensor_blocking();
             converter(NULL, NULL, NULL, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_regular[i] += gbuf[i];
@@ -390,8 +391,9 @@ namespace inv {
         for (int i = 0; i < 3; ++i) {
             gbuf[i] = -gyro_bias_regular[i] / 256;
         }
-        i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
+        res|=i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
                   (uint8_t *) gbuf, sizeof(gbuf));
+        return res;
     }
     icm20602::icm20602(i2c_interface &_i2c) : imu(_i2c) {
         memset(buf,0,sizeof(buf));
@@ -575,7 +577,7 @@ namespace inv {
         return rtv;
     }
 
-    void mpu6050::set_bias() { return; }
+    int mpu6050::set_bias() { return 0; }
 
     int mpu6050::soft_reset(void) {
         if (!detect()) { return -1; }
@@ -899,21 +901,22 @@ namespace inv {
         }
     }
 
-    void mpu9250::set_bias() {
-        if (!is_open()) { return; }
+    int mpu9250::set_bias() {
+        int res=0;
+        if (!is_open()) { return -1; }
         int32_t gyro_bias_regular[3];
         int16_t gbuf[3];
         uint8_t val;
         memset(gyro_bias_regular, 0, sizeof(gyro_bias_regular));
         memset(gbuf, 0, sizeof(gbuf));
-        i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
+        res|=i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
                   (uint8_t *) gbuf, sizeof(gbuf));
         int times;
         times = 100; while(times--){while(data_rdy()==0){}}//丢弃前100个数据
         times = 256;
         while (times--) {
             while (0 == icm20602::data_rdy()) {}
-            read_sensor_blocking();
+            res|=read_sensor_blocking();
             converter(NULL, NULL, NULL, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_regular[i] += gbuf[i];
@@ -939,8 +942,9 @@ namespace inv {
         for (int i = 0; i < 3; ++i) {
             gbuf[i] = (gyro_bias_regular[i] / 256) >> 2;
         }
-        i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
+        res|=i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
                   (uint8_t *) gbuf, sizeof(gbuf));
+        return res;
     }
 
     int mpu9250::converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y,
