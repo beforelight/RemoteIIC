@@ -246,9 +246,9 @@ namespace inv {
         memset(accel_bias_regular, 0, sizeof(accel_bias_regular));
 
         int times;
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前20个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -258,13 +258,14 @@ namespace inv {
                 accel_bias_regular[i] += abuf[i];
             }
         }
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
+
         res |= read_reg((uint8_t) icm20602_RegMap::GYRO_CONFIG, &val);
         res |= write_reg((uint8_t) icm20602_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
         res |= read_reg((uint8_t) icm20602_RegMap::ACCEL_CONFIG, &val);
         res |= write_reg((uint8_t) icm20602_RegMap::ACCEL_CONFIG, val | (0b111 << 5));//打开加速度计自检
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前20个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -276,10 +277,10 @@ namespace inv {
         }
 
         for (int i = 0; i < 3; ++i) {
-            gyro_bias_regular[i] *= 5;   //(32768/2000)*1000 LSB/mg
-            accel_bias_regular[i] *= 5;
-            gyro_bias_st[i] *= 5;         //(32768/250)*1000 LSB/dps
-            accel_bias_st[i] *= 5;
+            gyro_bias_regular[i] *= 50;   //(32768/2000)*1000 LSB/mg
+            accel_bias_regular[i] *= 50;
+            gyro_bias_st[i] *= 50;         //(32768/250)*1000 LSB/dps
+            accel_bias_st[i] *= 50;
         }
 
 
@@ -365,38 +366,6 @@ namespace inv {
         return res | (gyro_result << 1) | accel_result;
     }
 
-    int icm20602::set_bias() {
-        int res = 0;
-        if (!is_open()) { return -1; }
-        int32_t gyro_bias_regular[3];
-        int16_t gbuf[3];
-        uint8_t val;
-        memset(gyro_bias_regular, 0, sizeof(gyro_bias_regular));
-        memset(gbuf, 0, sizeof(gbuf));
-        res |= i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
-                         (uint8_t *) gbuf, sizeof(gbuf));
-        if (res != 0) { return res; }
-        int times;
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 256;
-        while (times--) {
-            while (!data_rdy()) {}
-            res |= read_sensor_blocking();
-            converter(NULL, NULL, NULL, gbuf, gbuf + 1, gbuf + 2);
-            for (int i = 0; i < 3; ++i) {
-                gyro_bias_regular[i] += gbuf[i];
-            }
-        }
-        if (res != 0) { return res; }
-        for (int i = 0; i < 3; ++i) {
-            gbuf[i] = -gyro_bias_regular[i] / 256;
-        }
-        res |= i2c.Write(addr, (uint8_t) icm20602_RegMap::XG_OFFS_USRH,
-                         (uint8_t *) gbuf, sizeof(gbuf));
-        return res;
-    }
-
     icm20602::icm20602(i2c_interface &_i2c) : imu(_i2c) {
         memset(buf, 0, sizeof(buf));
     }
@@ -451,9 +420,9 @@ namespace inv {
 
 
         int times;
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前20个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -464,13 +433,13 @@ namespace inv {
             }
         }
 
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
         res |= read_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, &val);
         res |= write_reg((uint8_t) mpu6050_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
         res |= read_reg((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, &val);
         res |= write_reg((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, val | (0b111 << 5));//打开加速度计自检
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -482,10 +451,10 @@ namespace inv {
         }
 
         for (int i = 0; i < 3; ++i) {
-            gyro_bias_regular[i] *= 5;   //(32768/2000)*1000 LSB/mg
-            accel_bias_regular[i] *= 5;
-            gyro_bias_st[i] *= 5;         //(32768/250)*1000 LSB/dps
-            accel_bias_st[i] *= 5;
+            gyro_bias_regular[i] *= 50;   //(32768/2000)*1000 LSB/mg
+            accel_bias_regular[i] *= 50;
+            gyro_bias_st[i] *= 50;         //(32768/250)*1000 LSB/dps
+            accel_bias_st[i] *= 50;
         }
 
         //开始计算自检结果
@@ -493,8 +462,8 @@ namespace inv {
         res |= i2c.Read(addr, (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
         int a_st[3];
         int g_st[3];
-        int ft_a[3];
-        int ft_g[3];
+        float ft_a[3];
+        float ft_g[3];
         a_st[0] = ((0b111 & (regs[0] >> 5)) << 2) | (0b11 & (regs[3] >> 4));
         a_st[1] = ((0b111 & (regs[1] >> 5)) << 2) | (0b11 & (regs[3] >> 2));
         a_st[2] = ((0b111 & (regs[2] >> 5)) << 2) | (0b11 & (regs[3] >> 0));
@@ -502,23 +471,25 @@ namespace inv {
         g_st[1] = 0b11111 & regs[1];
         g_st[2] = 0b11111 & regs[2];
 
-        ft_a[0] = (a_st[0] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (a_st[0] - 1) / (1 << 5 - 2));
-        ft_a[1] = (a_st[1] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (a_st[1] - 1) / (1 << 5 - 2));
-        ft_a[2] = (a_st[2] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (a_st[2] - 1) / (1 << 5 - 2));
-        ft_g[0] = (g_st[0] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, g_st[0] - 1);
-        ft_g[1] = (g_st[1] == 0) ? 0 : 1000 * -25 * 131 * pow(1.046, g_st[1] - 1);
-        ft_g[2] = (g_st[2] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, g_st[2] - 1);
+        ft_a[0] = (a_st[0] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[0] - 1) / ((1 << 5) - 2));
+        ft_a[1] = (a_st[1] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[1] - 1) / ((1 << 5) - 2));
+        ft_a[2] = (a_st[2] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[2] - 1) / ((1 << 5) - 2));
+        ft_g[0] = (g_st[0] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, (float) g_st[0] - 1);
+        ft_g[1] = (g_st[1] == 0) ? 0 : 1000 * -25 * 131 * pow(1.046, (float) g_st[1] - 1);
+        ft_g[2] = (g_st[2] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, (float) g_st[2] - 1);
 
         for (int i = 0; i < 3; ++i) {
             int str = accel_bias_st[i] - accel_bias_regular[i];
-            if (abs(1000 * (str - ft_a[i]) / ft_a[i]) > 140) {
+            float Change_from_factory_trim = (float) (str - ft_a[i]) / ft_a[i];
+            if (Change_from_factory_trim > 0.14 || Change_from_factory_trim < -0.14) {
                 accel_result = 1;
             }
         }
 
         for (int i = 0; i < 3; ++i) {
             int str = gyro_bias_st[i] - gyro_bias_regular[i];
-            if (abs(1000 * (str - ft_g[i]) / ft_g[i]) > 140) {
+            float Change_from_factory_trim = (float) (str - ft_g[i]) / ft_g[i];
+            if (Change_from_factory_trim > 0.14 || Change_from_factory_trim < -0.14) {
                 gyro_result = 1;
             }
         }
@@ -576,8 +547,6 @@ namespace inv {
         return rtv;
     }
 
-    int mpu6050::set_bias() { return 0; }
-
     int mpu6050::soft_reset(void) {
         if (!detect()) { return -1; }
         int res = 0;
@@ -604,7 +573,7 @@ namespace inv {
         uint8_t val;
         //设置9250内部i2c
         res |= write_reg((uint8_t) mpu9250_RegMap::I2C_MST_CTRL, 1 << 4 | 9);//500khz，连续读模式
-        res |= write_reg((uint8_t) mpu9250_RegMap::USER_CTRL, 1 << 4 | 9);//开启i2c主模式
+        res |= write_reg((uint8_t) mpu9250_RegMap::USER_CTRL, 1 << 5);//开启i2c主模式
 
         //开始设置ak8963
         //读取id
@@ -775,9 +744,9 @@ namespace inv {
         memset(accel_bias_regular, 0, sizeof(accel_bias_regular));
 
         int times;
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前20个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -788,13 +757,13 @@ namespace inv {
             }
         }
 
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 200;
         res |= read_reg((uint8_t) mpu9250_RegMap::GYRO_CONFIG, &val);
         res |= write_reg((uint8_t) mpu9250_RegMap::GYRO_CONFIG, val | (0b111 << 5));//打开陀螺仪自检
         res |= read_reg((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, &val);
         res |= write_reg((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, val | (0b111 << 5));//打开加速度计自检
+        times = 20;
+        while (times--) { while (!data_rdy()) {}}//丢弃前20个数据
+        times = 20;
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
@@ -806,10 +775,10 @@ namespace inv {
         }
 
         for (int i = 0; i < 3; ++i) {
-            gyro_bias_regular[i] *= 5;   //(32768/2000)*1000 LSB/mg
-            accel_bias_regular[i] *= 5;
-            gyro_bias_st[i] *= 5;         //(32768/250)*1000 LSB/dps
-            accel_bias_st[i] *= 5;
+            gyro_bias_regular[i] *= 50;   //(32768/2000)*1000 LSB/mg
+            accel_bias_regular[i] *= 50;
+            gyro_bias_st[i] *= 50;         //(32768/250)*1000 LSB/dps
+            accel_bias_st[i] *= 50;
         }
 
 
@@ -896,53 +865,6 @@ namespace inv {
         //恢复原来的配置
         res |= init(backup_cfg);
         return (gyro_result << 1) | accel_result | res;
-    }
-
-    int mpu9250::set_bias() {
-        int res = 0;
-        if (!is_open()) { return -1; }
-        int32_t gyro_bias_regular[3];
-        int16_t gbuf[3];
-        uint8_t val;
-        memset(gyro_bias_regular, 0, sizeof(gyro_bias_regular));
-        memset(gbuf, 0, sizeof(gbuf));
-        res |= i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
-                         (uint8_t *) gbuf, sizeof(gbuf));
-        int times;
-        times = 100;
-        while (times--) { while (!data_rdy()) {}}//丢弃前100个数据
-        times = 256;
-        while (times--) {
-            while (!data_rdy()) {}
-            res |= read_sensor_blocking();
-            converter(NULL, NULL, NULL, gbuf, gbuf + 1, gbuf + 2);
-            for (int i = 0; i < 3; ++i) {
-                gyro_bias_regular[i] += gbuf[i];
-            }
-        }
-        int fs_sel = 0;
-        switch (cfg.gyro_fs) {
-            case config::MPU_FS_2000dps:
-                fs_sel = 3;
-                break;
-            case config::MPU_FS_1000dps:
-                fs_sel = 2;
-                break;
-            case config::MPU_FS_500dps:
-                fs_sel = 1;
-                break;
-            case config::MPU_FS_250dps:
-            default:
-                fs_sel = 0;
-                break;
-        }
-
-        for (int i = 0; i < 3; ++i) {
-            gbuf[i] = (gyro_bias_regular[i] / 256) >> 2;
-        }
-        res |= i2c.Write(addr, (uint8_t) mpu9250_RegMap::XG_OFFSET_H,
-                         (uint8_t *) gbuf, sizeof(gbuf));
-        return res;
     }
 
     int mpu9250::converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y,

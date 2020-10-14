@@ -124,7 +124,6 @@ namespace inv {
         virtual int init(config _cfg = config()) = 0;
         virtual bool detect() = 0;
         virtual int self_test() = 0;
-        virtual int set_bias() = 0;
         virtual int converter(float *acc_x, float *acc_y, float *acc_z,
                               float *gyro_x, float *gyro_y, float *gyro_z) = 0;
         virtual int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -160,7 +159,6 @@ namespace inv {
         int init(config _cfg = config());
         bool detect();
         int self_test();
-        int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
         int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -200,7 +198,6 @@ namespace inv {
         int init(config _cfg = config());
         bool detect();
         int self_test();
-        int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
         int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -223,7 +220,6 @@ namespace inv {
         int init(config _cfg = config());
         bool detect();
         int self_test();
-        int set_bias();
         int converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
         int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
