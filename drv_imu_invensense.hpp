@@ -18,6 +18,16 @@
 #define INV_PRINTF(...)
 #endif
 namespace inv {
+    class i2cInterface_t;//i2c接口类
+    struct config_t;//设置量程和数字低通滤波器
+    class imu_t;//imu接口类
+    class mpuxxxxSeries_t;//基类，抽象出invensense的mpu系列以及部分icm系列imu的初始化/数据转换api
+    class mpu6050_t;//mpu6050驱动
+    class mpu6500Series_t;//基类，抽象出mpu6500系列以及部分icm系列imu的自检api
+    class icm20602_t;//icm20602驱动
+    class mpu9250_t;//mpu9250驱动
+    class imuPtr_t;//imu的智能指针类，用于实例化imu对象
+    //以下是声明
     class i2cInterface_t {
     public:
         i2cInterface_t(void *_context,
@@ -173,7 +183,7 @@ namespace inv {
         config_t cfg;
     };
 
-    class mpuxxxx_t : public imu_t {
+    class mpuxxxxSeries_t : public imu_t {
     public:
         int Init(config_t _cfg = config_t()) override;
 
@@ -202,16 +212,16 @@ namespace inv {
 
 
     protected:
-        mpuxxxx_t(i2cInterface_t &_i2c);
+        mpuxxxxSeries_t(i2cInterface_t &_i2c);
         float accelUnit;
         float gyroUnit;
         uint8_t buf[14];
     };
 
 
-    class mpu6050_t : public mpuxxxx_t {
+    class mpu6050_t : public mpuxxxxSeries_t {
     public:
-        mpu6050_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
+        mpu6050_t(i2cInterface_t &_i2c) : mpuxxxxSeries_t(_i2c) {}
 
         bool Detect() override;
         int SelfTest() override;
@@ -232,9 +242,9 @@ namespace inv {
                 9214, 9638, 10081, 10545, 11030, 11537, 12068, 12623};
     };
 
-    class mpu6500Series_t : public mpuxxxx_t {
+    class mpu6500Series_t : public mpuxxxxSeries_t {
     protected:
-        mpu6500Series_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
+        mpu6500Series_t(i2cInterface_t &_i2c) : mpuxxxxSeries_t(_i2c) {}
 
     public:
         int SelfTest() override;
