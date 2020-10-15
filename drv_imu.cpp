@@ -5,17 +5,6 @@
 #include <cmath>
 #include"drv_imu.hpp"
 
-bool inv::icm20602_t::Detect() {
-    uint8_t val;
-    SetI2cAddr(0x68);
-    if (0 != ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val)) { return false; };
-    if (0x12 == val) { return true; }
-    SetI2cAddr(0x69);
-    if (0 != ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val)) { return false; };
-    if (0x12 == val) { return true; }
-    return false;
-}
-
 std::string inv::icm20602_t::Report() {
     std::string rtv;
     rtv += "model:icm20602\t";
@@ -95,7 +84,7 @@ int inv::mpu6500Series_t::SelfTest() {
     int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-    res |= i2c.ReadBlocking(GetI2cAddr(), REG_SELF_TEST_X_ACCEL(), regs, 3);
+    res |= i2c.ReadBlocking(GetI2cAddr(), RegSelfTestXAccel(), regs, 3);
     for (i = 0; i < 3; i++) {
         if (regs[i] != 0) {
             st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -128,7 +117,7 @@ int inv::mpu6500Series_t::SelfTest() {
     }
 
     //计算陀螺仪自检结果
-    res |= i2c.ReadBlocking(GetI2cAddr(), REG_SELF_TEST_X_GYRO(), regs, 3);
+    res |= i2c.ReadBlocking(GetI2cAddr(), RegSelfTestXGyro(), regs, 3);
     for (i = 0; i < 3; i++) {
         if (regs[i] != 0) {
             st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -374,16 +363,16 @@ namespace inv {
         return ModifyReg((uint8_t) icm20602_RegMap::INT_ENABLE, 0x01, 0x01);
     }
 
-    bool mpu6050_t::Detect() {
+    bool mpuSeries_t::Detect() {
         uint8_t val;
         SetI2cAddr(0x68);
-        if (0 != ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x68 == val) {
+        if (0 != ReadReg((uint8_t) RegWhoAmI(), &val)) { return false; };
+        if (WhoAmI() == val) {
             return true;
         }
         SetI2cAddr(0x69);
-        if (0 != ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x68 == val) {
+        if (0 != ReadReg((uint8_t) RegWhoAmI(), &val)) { return false; };
+        if (WhoAmI() == val) {
             return true;
         }
         return false;
@@ -465,19 +454,19 @@ namespace inv {
         g_st[1] = 0b11111 & regs[1];
         g_st[2] = 0b11111 & regs[2];
 
-        a_st[0]&=(32-1);
-        a_st[1]&=(32-1);
-        a_st[2]&=(32-1);
-        g_st[0]&=(32-1);
-        g_st[1]&=(32-1);
-        g_st[2]&=(32-1);
+        a_st[0] &= (32 - 1);
+        a_st[1] &= (32 - 1);
+        a_st[2] &= (32 - 1);
+        g_st[0] &= (32 - 1);
+        g_st[1] &= (32 - 1);
+        g_st[2] &= (32 - 1);
 
-        ft_a[0] = 1000*accelSelfTestEquation[a_st[0]];
-        ft_a[1] = 1000*accelSelfTestEquation[a_st[1]];
-        ft_a[2] = 1000*accelSelfTestEquation[a_st[2]];
-        ft_g[0] = 1000*gyroSelfTestEquation[g_st[0]];
-        ft_g[1] = -1000*gyroSelfTestEquation[g_st[1]];
-        ft_g[2] = 1000*gyroSelfTestEquation[g_st[2]];
+        ft_a[0] = 1000 * accelSelfTestEquation[a_st[0]];
+        ft_a[1] = 1000 * accelSelfTestEquation[a_st[1]];
+        ft_a[2] = 1000 * accelSelfTestEquation[a_st[2]];
+        ft_g[0] = 1000 * gyroSelfTestEquation[g_st[0]];
+        ft_g[1] = -1000 * gyroSelfTestEquation[g_st[1]];
+        ft_g[2] = 1000 * gyroSelfTestEquation[g_st[2]];
 
         for (int i = 0; i < 3; ++i) {
             int str = accel_bias_st[i] - accel_bias_regular[i];
@@ -675,17 +664,6 @@ namespace inv {
         return res;
     }
 
-    bool mpu9250_t::Detect() {
-        uint8_t val;
-        SetI2cAddr(0x68);
-        if (0 != ReadReg((uint8_t) mpu9250_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x71 == val) { return true; }
-        SetI2cAddr(0x69);
-        if (0 != ReadReg((uint8_t) mpu9250_RegMap::WHO_AM_I, &val)) { return false; };
-        if (0x71 == val) { return true; }
-        return false;
-    }
-
     int mpu9250_t::Converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y,
                              float *gyro_z) {
         if (acc_x) { *acc_x = accelUnit * ((int16_t) (buf[0] << 8) | buf[1]); }
@@ -749,7 +727,7 @@ namespace inv {
                                    buf, 22);
     }
 
-    mpu9250_t::mpu9250_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c) ,ak8963DeviceId(0),ak8963Information(0){
+    mpu9250_t::mpu9250_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c), ak8963DeviceId(0), ak8963Information(0) {
         memset(buf, 0, sizeof(buf));
         memset(buf, 0, sizeof(ak8963Asa));
     }

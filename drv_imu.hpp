@@ -186,11 +186,7 @@ namespace inv {
     class mpuSeries_t : public imu_t {
     public:
         int Init(config_t _cfg = config_t()) override;
-
-        bool Detect() override { return false; }
-
-        int SelfTest() override { return 0; }
-
+        bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z) override;
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -198,18 +194,18 @@ namespace inv {
         int Converter(float *mag_x, float *mag_y, float *mag_z);
         int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
 
-        int Converter(float *temp) override { return 0; }
 
         int ReadSensorBlocking() override;
         int ReadSensorNonBlocking() override;
 
-        std::string Report() override { return std::string(); }
 
     public:
-        virtual int SoftReset(void) = 0;
+        virtual int SoftReset() = 0;
         virtual int EnableDataReadyInt();
         virtual bool DataReady();
+        virtual uint8_t WhoAmI() = 0;
 
+        virtual uint8_t RegWhoAmI() { return (uint8_t) icm20602_RegMap::WHO_AM_I; }
 
     protected:
         mpuSeries_t(i2cInterface_t &_i2c);
@@ -223,11 +219,12 @@ namespace inv {
     public:
         mpu6050_t(i2cInterface_t &_i2c) : mpuSeries_t(_i2c) {}
 
-        bool Detect() override;
         int SelfTest() override;
         int Converter(float *temp) override;
         std::string Report() override;
         int SoftReset(void) override;
+
+        uint8_t WhoAmI() override { return 0x68; }
 
         constexpr static const uint16_t accelSelfTestEquation[32] = {
                 1347, 1393, 1440, 1488, 1538, 1590, 1644, 1699,
@@ -248,8 +245,8 @@ namespace inv {
 
     public:
         int SelfTest() override;
-        virtual uint8_t REG_SELF_TEST_X_ACCEL() = 0;
-        virtual uint8_t REG_SELF_TEST_X_GYRO() = 0;
+        virtual uint8_t RegSelfTestXAccel() = 0;
+        virtual uint8_t RegSelfTestXGyro() = 0;
         constexpr static const int DEF_ST_PRECISION = 1000;
         constexpr static const int DEF_GYRO_CT_SHIFT_DELTA = 500;
         const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
@@ -302,20 +299,20 @@ namespace inv {
         icm20602_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c) {}
 
         int SoftReset(void) override;
-        bool Detect() override;
         int Converter(float *temp) override;
         std::string Report() override;
 
-        uint8_t REG_SELF_TEST_X_ACCEL() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL; }
+        uint8_t WhoAmI() override { return 0x12; }
 
-        uint8_t REG_SELF_TEST_X_GYRO() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO; }
+        uint8_t RegSelfTestXAccel() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL; }
+
+        uint8_t RegSelfTestXGyro() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO; }
     };
 
     class mpu9250_t : public mpu6500Series_t {
     public:
         mpu9250_t(i2cInterface_t &_i2c);
         int Init(config_t _cfg = config_t()) override;
-        bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z) override;
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -328,9 +325,11 @@ namespace inv {
         std::string Report() override;
         int SoftReset(void) override;
 
-        uint8_t REG_SELF_TEST_X_ACCEL() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL; }
+        uint8_t WhoAmI() override { return 0x71; }
 
-        uint8_t REG_SELF_TEST_X_GYRO() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
+        uint8_t RegSelfTestXAccel() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL; }
+
+        uint8_t RegSelfTestXGyro() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
 
     public:
         int SubI2cRead(unsigned char addr,
