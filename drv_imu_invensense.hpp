@@ -134,47 +134,100 @@ namespace inv {
         virtual int ReadSensorBlocking() = 0;
         virtual int ReadSensorNonBlocking() = 0;
         virtual std::string Report() = 0;
-        virtual int SoftReset(void) = 0;
 
     public:
         bool IsOpen() { return isOpen; };
 
+        void SetConfig(config_t _cfg) { cfg = _cfg; }
+
+        constexpr const config_t &GetConfig() { return cfg; }
+
+        void SetI2cAddr(uint8_t _addr) { addr = _addr; }
+
+        constexpr const uint8_t &GetI2cAddr() { return addr; }
+
     protected:
+        void SetIsOpen() { isOpen = true; }
+
+        void ClearIsOpen() { isOpen = false; }
+
         imu_t(i2cInterface_t &_i2c) : i2c(_i2c), isOpen(false), addr(0), cfg(config_t()) {}
 
-        virtual int WriteReg(uint8_t reg, const uint8_t val) { return i2c.WriteBlocking(addr, reg, &val, 1); };
+        i2cInterface_t &i2c;
 
-        virtual int ReadReg(uint8_t reg, uint8_t *val) { return i2c.ReadBlocking(addr, reg, val, 1); };
+        int WriteReg(uint8_t reg, const uint8_t val) { return i2c.WriteBlocking(addr, reg, &val, 1); };
 
-    protected:
+        int ReadReg(uint8_t reg, uint8_t *val) { return i2c.ReadBlocking(addr, reg, val, 1); };
+
+        int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask) {
+            uint8_t regVal;
+            int res = 0;
+            res |= ReadReg(reg, &regVal);
+            res |= WriteReg(reg, (regVal & (~mask)) | (val & mask));
+            return res;
+        }
+
+    private:
         uint8_t addr;
         bool isOpen;
         config_t cfg;
-        i2cInterface_t &i2c;
     };
 
-    class icm20602_t : public imu_t {
+    class mpuxxxx_t : public imu_t {
     public:
-        icm20602_t(i2cInterface_t &_i2c);
         int Init(config_t _cfg = config_t());
-        bool Detect();
-        int SelfTest();
+
+        bool Detect() { return false; }
+
+        int SelfTest() { return 0; }
+
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
                       int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
         int Converter(float *mag_x, float *mag_y, float *mag_z);
         int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
-        int Converter(float *temp);
+
+        int Converter(float *temp) { return 0; }
+
         int ReadSensorBlocking();
         int ReadSensorNonBlocking();
+
+        std::string Report() { return std::string(); }
+
+    public:
+        virtual int SoftReset(void) = 0;
+        virtual int EnableDataReadyInt();
+        virtual bool DataReady();
+
+
+    protected:
+        mpuxxxx_t(i2cInterface_t &_i2c);
+        float accelUnit;
+        float gyroUnit;
+        uint8_t buf[14];
+    };
+
+
+    class mpu6050_t : public mpuxxxx_t {
+    public:
+        mpu6050_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
+
+        bool Detect();
+        int SelfTest();
+        int Converter(float *temp);
         std::string Report();
         int SoftReset(void);
+    };
+
+    class mpu6500Series_t : public mpuxxxx_t {
+    protected:
+        mpu6500Series_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
 
     public:
-        bool DataReady();
-
-    public:
+        int SelfTest();
+        virtual uint8_t REG_SELF_TEST_X_ACCEL() = 0;
+        virtual uint8_t REG_SELF_TEST_X_GYRO() = 0;
         constexpr static int DEF_ST_PRECISION = 1000;
         constexpr static int DEF_GYRO_CT_SHIFT_DELTA = 500;
         const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
@@ -185,31 +238,27 @@ namespace inv {
         /* Accel Self Test Absolute Limits ST_AL (mg) */
         constexpr static int DEF_ACCEL_ST_AL_MIN = 225;
         constexpr static int DEF_ACCEL_ST_AL_MAX = 675;
-
-    protected:
-        float accelUnit;
-        float gyroUnit;
-        uint8_t buf[14];
     };
 
-    class mpu6050_t : public icm20602_t {
+    class icm20602_t : public mpu6500Series_t {
     public:
-        mpu6050_t(i2cInterface_t &_i2c) : icm20602_t(_i2c) {}
+        icm20602_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c) {}
 
+        int SoftReset(void);
         bool Detect();
-        int SelfTest();
         int Converter(float *temp);
         std::string Report();
-        int SoftReset(void);
+
+        uint8_t REG_SELF_TEST_X_ACCEL() { return (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL; }
+
+        uint8_t REG_SELF_TEST_X_GYRO() { return (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO; }
     };
 
-
-    class mpu9250_t : public icm20602_t {
+    class mpu9250_t : public mpu6500Series_t {
     public:
         mpu9250_t(i2cInterface_t &_i2c);
         int init(config_t _cfg = config_t());
         bool Detect();
-        int SelfTest();
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z);
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
@@ -221,6 +270,10 @@ namespace inv {
         int ReadSensorNonBlocking();
         std::string Report();
         int SoftReset(void);
+
+        uint8_t REG_SELF_TEST_X_ACCEL() { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL; }
+
+        uint8_t REG_SELF_TEST_X_GYRO() { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
 
     public:
         int SubI2cRead(unsigned char addr,

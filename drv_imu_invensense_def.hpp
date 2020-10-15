@@ -1,6 +1,6 @@
 #ifndef REMOTEIIC_DRV_IMU_INVENSENSE_DEF_HPP
 #define REMOTEIIC_DRV_IMU_INVENSENSE_DEF_HPP
-#include <stdint.h>
+#include <cstdint>
 namespace inv {
 	enum class icm20602_RegMap :uint8_t
 	{
