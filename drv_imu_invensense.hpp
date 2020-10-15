@@ -18,7 +18,7 @@
 #define INV_PRINTF(...)
 #endif
 namespace inv {
-    class i2cInterface_t;//i2c接口类
+    class i2cInterface_t;//i2c接口
     struct config_t;//设置量程和数字低通滤波器
     class imu_t;//imu接口类
     class mpuSeries_t;//基类，抽象出invensense的mpu系列以及部分icm系列imu的初始化/数据转换api
@@ -29,7 +29,7 @@ namespace inv {
     class imuPtr_t;//imu的智能指针类，用于实例化imu对象
 
 
-    //i2c接口类
+    //i2c接口
     class i2cInterface_t {
     public:
         /**
@@ -66,6 +66,7 @@ namespace inv {
 
         /**
          * @brief imu_t会调用此方法实现读写iic
+         *          此方法将调用构造时传入的函数指针
          * @param  {unsigned} char  : 
          * @param  {unsigned} char  : 
          * @param  {unsigned*} char : 
@@ -79,6 +80,7 @@ namespace inv {
 
         /**
          * @brief imu_t会调用此方法实现读写iic
+         *          此方法将调用构造时传入的函数指针
          * @param  {unsigned} char        : 
          * @param  {unsigned} char        : 
          * @param  {const unsigned*} char : 
@@ -92,6 +94,7 @@ namespace inv {
 
         /**
          * @brief imu_t会调用此方法实现异步读写iic
+         *          此方法将调用构造时传入的函数指针
          * @param  {unsigned} char  : 
          * @param  {unsigned} char  : 
          * @param  {unsigned*} char : 
@@ -105,6 +108,7 @@ namespace inv {
 
         /**
          * @brief imu_t会调用此方法实现异步读写iic
+         *          此方法将调用构造时传入的函数指针
          * @param  {unsigned} char        : 
          * @param  {unsigned} char        : 
          * @param  {const unsigned*} char : 
@@ -333,12 +337,7 @@ namespace inv {
         int Converter(float *mag_x, float *mag_y, float *mag_z);
         int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
 
-        /**
-         * @brief   转换缓冲中的温度到其他地方，单位为摄氏度
-         * @param  {float*} temp :可以等于NULL
-         * @return {int}         :错误码
-         */
-        virtual int Converter(float *temp) = 0;
+
 
         int ReadSensorBlocking() override;
         int ReadSensorNonBlocking() override;
@@ -350,6 +349,13 @@ namespace inv {
          * @return {int}  : 错误码
          */
         virtual int SoftReset() = 0;
+
+        /**
+         * @brief   转换缓冲中的温度到其他地方，单位为摄氏度
+         * @param  {float*} temp :可以等于NULL
+         * @return {int}         :错误码
+         */
+        virtual int Converter(float *temp) = 0;
 
         /**
          * @brief   使能传感器的DataReady中断
@@ -443,7 +449,7 @@ namespace inv {
 
         constexpr static const int DEF_ST_PRECISION = 1000;
         constexpr static const int DEF_GYRO_CT_SHIFT_DELTA = 500;
-        const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
+        constexpr static const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
         /* Gyro Offset Max Value (dps) */
         constexpr static const int DEF_GYRO_OFFSET_MAX = 20;
         /* Gyro Self Test Absolute Limits ST_AL (dps) */

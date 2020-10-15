@@ -1,13 +1,29 @@
 #include <iostream>
 #include"remote_i2c.h"
 #include"drv_imu_invensense.hpp"
-
+/**
+ * 
+ * @param  {void*} context  : 用户参数
+ * @param  {unsigned} char  : iic从机地址
+ * @param  {unsigned} char  : 从机寄存器地址
+ * @param  {unsigned*} char : 缓存地址
+ * @param  {unsigned} int   : 数据长度
+ * @return {int}            : 错误码
+ */
 int remote_i2c_read(void *context,
                     unsigned char addr, unsigned char reg,
                     unsigned char *val, unsigned int len) {
     return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
 }
-
+/**
+ * 
+ * @param  {void*} context        : 用户参数
+ * @param  {unsigned} char        : iic从机地址
+ * @param  {unsigned} char        : 从机寄存器地址
+ * @param  {const unsigned*} char : 缓存地址
+ * @param  {unsigned} int         : 数据长度
+ * @return {int}                  : 错误码
+ */
 int remote_i2c_write(void *context,
                      unsigned char addr, unsigned char reg,
                      const unsigned char *val, unsigned int len) {
