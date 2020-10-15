@@ -17,7 +17,7 @@ int remote_i2c_write(void *context,
 remote_i2c iic("/dev/i2c-1");
 inv::i2c_interface my_i2c(&iic, remote_i2c_read, remote_i2c_write,
                           remote_i2c_read, remote_i2c_write);
-std::shared_ptr<inv::imu> my_imu;
+inv::imu_ptr my_imu;
 uint8_t val;
 
 float acc[3] = {0, 0, 0};
@@ -26,7 +26,7 @@ float mag[3] = {0, 0, 0};
 float temp = 0;
 
 int main(int argc, const char **argv) {
-    if (0 == inv::Parser(my_i2c, my_imu)) {
+    if (0 == my_imu.Load(my_i2c)) {
         if (my_imu->init() == 0) {
             //自检时保持静止，否则会直接失败
             if (my_imu->self_test() == 0) {

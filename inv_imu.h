@@ -195,21 +195,12 @@ namespace inv {
     class mpu6050 : public icm20602 {
     public:
         mpu6050(i2c_interface &_i2c) : icm20602(_i2c) {}
-        int init(config _cfg = config());
+
         bool detect();
         int self_test();
-        int converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z);
-        int converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
-        int converter(float *mag_x, float *mag_y, float *mag_z);
-        int converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
         int converter(float *temp);
-        int read_sensor_blocking();
-        int read_sensor_NonBlocking();
         std::string report();
         int soft_reset(void);
-
     public:
     };
 
@@ -264,6 +255,10 @@ namespace inv {
         const float mag_unit = 0.15f;;//固定量程4900uT 0.15µT/LSB
         float AK8963_ASA[3];
     };
-    int Parser(i2c_interface &_i2c, std::shared_ptr<imu> &ptr);
+
+    class imu_ptr : public std::shared_ptr<imu> {
+    public:
+        int Load(i2c_interface &_i2c);
+    };
 }
 #endif //REMOTEIIC_INV_IMU_H

@@ -6,19 +6,6 @@
 #include"inv_imu.h"
 
 namespace inv {
-    int Parser(i2c_interface &_i2c, std::shared_ptr<imu> &ptr) {
-        if (icm20602(_i2c).detect()) {
-            ptr.reset(new icm20602(_i2c));
-            return 0;
-        } else if (mpu6050(_i2c).detect()) {
-            ptr.reset(new mpu6050(_i2c));
-            return 0;
-        } else if (mpu9250(_i2c).detect()) {
-            ptr.reset(new mpu9250(_i2c));
-            return 0;
-        }
-        return -1;
-    }
 
 
     int icm20602::init(config _cfg) {
@@ -174,7 +161,7 @@ namespace inv {
     }
 
     int icm20602::converter(float *temp) {
-        if (temp) { *temp = ((uint16_t) (buf[6] << 8) | buf[7]) / 326.8 + 25.0f; }
+        if (temp) { *temp = ((int16_t) (buf[6] << 8) | buf[7]) / 326.8 + 25.0f; }
         return 0;
     }
 
@@ -426,7 +413,7 @@ namespace inv {
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
-            converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            icm20602::converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_regular[i] += gbuf[i];
                 accel_bias_regular[i] += abuf[i];
@@ -443,7 +430,7 @@ namespace inv {
         while (times--) {
             while (!data_rdy()) {}
             res |= read_sensor_blocking();
-            converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            icm20602::converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_st[i] += gbuf[i];
                 accel_bias_st[i] += abuf[i];
@@ -499,43 +486,13 @@ namespace inv {
         return (gyro_result << 1) | accel_result | res;
     }
 
-    int mpu6050::init(config _cfg) {
-        return icm20602::init(_cfg);
-    }
-
-    int mpu6050::converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
-        return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-    }
-
-    int mpu6050::converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y,
-                           int16_t *gyro_z) {
-        return icm20602::converter(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
-    }
-
-    int mpu6050::converter(float *mag_x, float *mag_y, float *mag_z) {
-        (void) mag_x, (void) mag_y, (void) mag_z;
-        return 0;
-    }
-
-    int mpu6050::converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
-        (void) mag_x, (void) mag_y, (void) mag_z;
-        return 0;
-    }
 
     int mpu6050::converter(float *temp) {
         if (temp) {
-            *temp = ((uint16_t) (icm20602::buf[6] << 8)
+            *temp = ((int16_t) (icm20602::buf[6] << 8)
                      | icm20602::buf[7] - 521) / 340.0 + 35;
         }
         return 0;
-    }
-
-    int mpu6050::read_sensor_blocking() {
-        return icm20602::read_sensor_blocking();
-    }
-
-    int mpu6050::read_sensor_NonBlocking() {
-        return icm20602::read_sensor_NonBlocking();
     }
 
     std::string mpu6050::report() {
@@ -916,7 +873,7 @@ namespace inv {
     }
 
     int mpu9250::converter(float *temp) {
-        if (temp) { *temp = ((uint16_t) (buf[6] << 8) | buf[7]) / 333.87 + 21.0f; }
+        if (temp) { *temp = ((int16_t) (buf[6] << 8) | buf[7]) / 333.87 + 21.0f; }
         return 0;
     }
 
@@ -947,5 +904,19 @@ namespace inv {
 
         //唤起睡眠
         res |= write_reg((uint8_t) icm20602_RegMap::PWR_MGMT_1, 0x1);
+    }
+
+    int imu_ptr::Load(i2c_interface &_i2c) {
+        if (icm20602(_i2c).detect()) {
+            reset(new icm20602(_i2c));
+            return 0;
+        } else if (mpu6050(_i2c).detect()) {
+            reset(new mpu6050(_i2c));
+            return 0;
+        } else if (mpu9250(_i2c).detect()) {
+            reset(new mpu9250(_i2c));
+            return 0;
+        }
+        return -1;
     }
 }
