@@ -3,7 +3,7 @@
 //
 #include <cstring>
 #include <cmath>
-#include"drv_imu.hpp"
+#include"drv_imu_invensense.hpp"
 
 std::string inv::icm20602_t::Report() {
     std::string rtv;
@@ -695,7 +695,7 @@ namespace inv {
         }
         if (mag_x) { *mag_x = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }
         if (mag_y) { *mag_y = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 4] << 8) | buf[14 + 3]); }
-        if (mag_z) { *mag_z = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 8] << 8) | buf[14 + 5]); }
+        if (mag_z) { *mag_z = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 6] << 8) | buf[14 + 5]); }
         return 0;
     }
 
@@ -708,7 +708,7 @@ namespace inv {
         }
         if (mag_x) { *mag_x = ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }
         if (mag_y) { *mag_y = ((int16_t) (buf[14 + 4] << 8) | buf[14 + 3]); }
-        if (mag_z) { *mag_z = ((int16_t) (buf[14 + 8] << 8) | buf[14 + 5]); }
+        if (mag_z) { *mag_z = ((int16_t) (buf[14 + 6] << 8) | buf[14 + 5]); }
         return 0;
     }
 

@@ -2,13 +2,13 @@
 // Created by 17616 on 2020/10/12.
 //
 
-#ifndef REMOTEIIC_DRV_IMU_HPP
-#define REMOTEIIC_DRV_IMU_HPP
+#ifndef REMOTEIIC_DRV_IMU_INVENSENSE_HPP
+#define REMOTEIIC_DRV_IMU_INVENSENSE_HPP
 
 #include <cstdint>
 #include <string>
 #include <memory>
-#include "drv_imu_def.hpp"
+#include "drv_imu_invensense_def.hpp"
 #ifdef INV_IMU_DEBUG
 #ifdef __linux__
 #include<iostream>
@@ -27,9 +27,27 @@ namespace inv {
     class icm20602_t;//icm20602驱动
     class mpu9250_t;//mpu9250驱动
     class imuPtr_t;//imu的智能指针类，用于实例化imu对象
-    //以下是声明
+
+
+    //i2c接口类
     class i2cInterface_t {
     public:
+        /**
+         * @param  _context          :调用函数指针传入的用户参数
+         * @param  _readBlocking     :约定如下，阻塞读
+         *  **************************************************
+         *  * @brief   这里的函数指针的参数约定
+         *  * @param  {void*}                : 用户参数
+         *  * @param  {unsigned char}        : iic从机地址
+         *  * @param  {unsigned char}        : 从机寄存器地址
+         *  * @param  {const unsigned* char} : 缓存地址
+         *  * @param  {unsigned int}         : 数据长度
+         *  * @return {int}                  : 错误码
+         *  **************************************************
+         * @param  _writeBlocking    :约定同上，阻塞写
+         * @param  _readNonBlocking  :约定同上，非阻塞读
+         * @param  _writeNonBlocking :约定同上，非阻塞写
+         */
         i2cInterface_t(void *_context,
                        int (*_readBlocking)(void *context,
                                             unsigned char addr, unsigned char reg,
@@ -46,21 +64,53 @@ namespace inv {
                 : context(_context), readBlocking(_readBlocking), writeBlocking(_writeBlocking),
                   readNonBlocking(_readNonBlocking), writeNonBlocking(_writeNonBlocking) {}
 
+        /**
+         * @brief imu_t会调用此方法实现读写iic
+         * @param  {unsigned} char  : 
+         * @param  {unsigned} char  : 
+         * @param  {unsigned*} char : 
+         * @param  {unsigned} int   : 
+         * @return {int}            : 错误码
+         */
         int ReadBlocking(unsigned char addr, unsigned char reg,
                          unsigned char *val, unsigned int len) {
             return (*readBlocking)(context, addr, reg, val, len);
         }
 
+        /**
+         * @brief imu_t会调用此方法实现读写iic
+         * @param  {unsigned} char        : 
+         * @param  {unsigned} char        : 
+         * @param  {const unsigned*} char : 
+         * @param  {unsigned} int         : 
+         * @return {int}                  : 错误码
+         */
         int WriteBlocking(unsigned char addr, unsigned char reg,
                           const unsigned char *val, unsigned int len) {
             return (*writeBlocking)(context, addr, reg, val, len);
         }
 
+        /**
+         * @brief imu_t会调用此方法实现异步读写iic
+         * @param  {unsigned} char  : 
+         * @param  {unsigned} char  : 
+         * @param  {unsigned*} char : 
+         * @param  {unsigned} int   : 
+         * @return {int}            : 错误码
+         */
         int ReadNonBlocking(unsigned char addr, unsigned char reg,
                             unsigned char *val, unsigned int len) {
             return (*readNonBlocking)(context, addr, reg, val, len);
         }
 
+        /**
+         * @brief imu_t会调用此方法实现异步读写iic
+         * @param  {unsigned} char        : 
+         * @param  {unsigned} char        : 
+         * @param  {const unsigned*} char : 
+         * @param  {unsigned} int         : 
+         * @return {int}                  : 错误码
+         */
         int WriteNonBlocking(unsigned char addr, unsigned char reg,
                              const unsigned char *val, unsigned int len) {
             return (*writeNonBlocking)(context, addr, reg, val, len);
@@ -131,29 +181,113 @@ namespace inv {
 
     class imu_t {
     public:
+        /**
+         * @brief   初始化imu，初始化之后才能使用其他方法
+         * @param  {config_t} _cfg : 量程等配置信息
+         * @return {int}           : 错误码
+         */
         virtual int Init(config_t _cfg = config_t()) = 0;
+
+        /**
+         * @brief   可以在初始化之前执行，检查是否有imu，并且设置正确的iic地址
+         * @return {bool}  : true为成功
+         */
         virtual bool Detect() = 0;
+
+        /**
+         * @brief 自检，自检过程中保持传感器静止
+         * @return {int}  : 错误码
+         */
         virtual int SelfTest() = 0;
+
+        /**
+         * @brief   转换！！！缓存！！!中加速度和陀螺仪的数据到指定的地方，单位如下
+         * @param  {float*} acc_x  :可以等于NULL，米每平方妙
+         * @param  {float*} acc_y  :可以等于NULL，米每平方妙
+         * @param  {float*} acc_z  :可以等于NULL，米每平方妙
+         * @param  {float*} gyro_x :可以等于NULL， dps(degree per second)
+         * @param  {float*} gyro_y :可以等于NULL， dps(degree per second)
+         * @param  {float*} gyro_z :可以等于NULL， dps(degree per second)
+         * @return {int}           :错误码
+         */
         virtual int Converter(float *acc_x, float *acc_y, float *acc_z,
                               float *gyro_x, float *gyro_y, float *gyro_z) = 0;
+
+        /**
+         * @brief   转换！！！缓存！！!中加速度和陀螺仪的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} acc_x  : 可以等于NULL
+         * @param  {int16_t*} acc_y  : 可以等于NULL
+         * @param  {int16_t*} acc_z  : 可以等于NULL
+         * @param  {int16_t*} gyro_x : 可以等于NULL
+         * @param  {int16_t*} gyro_y : 可以等于NULL
+         * @param  {int16_t*} gyro_z : 可以等于NULL
+         * @return {int}             : 错误码
+         */
         virtual int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
                               int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) = 0;
+        /**
+         * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为uT
+         * @param  {float*} mag_x : 可以等于NULL
+         * @param  {float*} mag_y : 可以等于NULL
+         * @param  {float*} mag_z : 可以等于NULL
+         * @return {int}          : 错误码
+         */
         virtual int Converter(float *mag_x, float *mag_y, float *mag_z) = 0;
+        /**
+         * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} mag_x : 可以等于NULL
+         * @param  {int16_t*} mag_y : 可以等于NULL
+         * @param  {int16_t*} mag_z : 可以等于NULL
+         * @return {int}            : 错误码
+         */
         virtual int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) = 0;
-        virtual int Converter(float *temp) = 0;
+
+        /**
+         * @brief   调用阻塞IO读取传感器数据到缓存，当读取完成或者发送错误时返回
+         * @return {int}  : 错误码
+         */
         virtual int ReadSensorBlocking() = 0;
+
+        /**
+         * @brief   调用非阻塞IO读取传感器数据到缓存，立即返回，请自行确定非阻塞读取是否完成
+         * @return {int}  : 错误码
+         */
         virtual int ReadSensorNonBlocking() = 0;
+
+        /**
+         * @brief   返回字符串告诉用户传感器的模组信息
+         * @return {std::string}  : 字符串
+         */
         virtual std::string Report() = 0;
 
     public:
+
+        /**
+         * @brief   返回是否初始化
+         * @return {bool}  : true为是
+         */
         bool IsOpen() { return isOpen; };
 
+        /**
+         * @brief   设置内存中的量程等配置信息，不会对传感器生效
+         * @param  {config_t} _cfg : 
+         */
         void SetConfig(config_t _cfg) { cfg = _cfg; }
 
+        /**
+         * @return {config_t}  :量程等配置信息
+         */
         constexpr const config_t &GetConfig() { return cfg; }
 
+        /**
+         * @brief   设置通讯中的iic从机地址
+         * @param  {uint8_t} _addr : 从机地址
+         */
         void SetI2cAddr(uint8_t _addr) { addr = _addr; }
 
+        /**
+         * @return {uint8_t}  : 从机地址
+         */
         constexpr const uint8_t &GetI2cAddr() { return addr; }
 
     protected:
@@ -161,6 +295,11 @@ namespace inv {
 
         void ClearIsOpen() { isOpen = false; }
 
+        /**
+         * imu_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         imu_t(i2cInterface_t &_i2c) : i2c(_i2c), isOpen(false), addr(0), cfg(config_t()) {}
 
         i2cInterface_t &i2c;
@@ -194,20 +333,54 @@ namespace inv {
         int Converter(float *mag_x, float *mag_y, float *mag_z);
         int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
 
+        /**
+         * @brief   转换缓冲中的温度到其他地方，单位为摄氏度
+         * @param  {float*} temp :可以等于NULL
+         * @return {int}         :错误码
+         */
+        virtual int Converter(float *temp) = 0;
 
         int ReadSensorBlocking() override;
         int ReadSensorNonBlocking() override;
 
 
     public:
+        /**
+         * @brief   软复位，可以在初始化之前执行
+         * @return {int}  : 错误码
+         */
         virtual int SoftReset() = 0;
+
+        /**
+         * @brief   使能传感器的DataReady中断
+         * @return {int}  : 
+         */
         virtual int EnableDataReadyInt();
+
+        /**
+         * @brief   返回传感器的DataReady中断状态
+         * @return {bool}  :
+         */
         virtual bool DataReady();
+
+        /**
+         * @brief   返回传感器WHO_AM_I寄存器的出厂默认值
+         * @return {uint8_t}  : 
+         */
         virtual uint8_t WhoAmI() = 0;
 
+        /**
+         * @brief   返回传感器WHO_AM_I寄存器的寄存器地址
+         * @return {uint8_t}           :
+         */
         virtual uint8_t RegWhoAmI() { return (uint8_t) icm20602_RegMap::WHO_AM_I; }
 
     protected:
+        /**
+         * mpuSeries_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         mpuSeries_t(i2cInterface_t &_i2c);
         float accelUnit;
         float gyroUnit;
@@ -217,6 +390,11 @@ namespace inv {
 
     class mpu6050_t : public mpuSeries_t {
     public:
+        /**
+         * mpu6050_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         mpu6050_t(i2cInterface_t &_i2c) : mpuSeries_t(_i2c) {}
 
         int SelfTest() override;
@@ -241,12 +419,28 @@ namespace inv {
 
     class mpu6500Series_t : public mpuSeries_t {
     protected:
+        /**
+         * mpu6500Series_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         mpu6500Series_t(i2cInterface_t &_i2c) : mpuSeries_t(_i2c) {}
 
     public:
         int SelfTest() override;
+
+        /**
+         * @brief   返回加速度自检出厂数据的寄存器的寄存器地址
+         * @return {uint8_t}  : 
+         */
         virtual uint8_t RegSelfTestXAccel() = 0;
+
+        /**
+         * @brief   返回陀螺仪自检出厂数据的寄存器的寄存器地址
+         * @return {uint8_t}  : 
+         */
         virtual uint8_t RegSelfTestXGyro() = 0;
+
         constexpr static const int DEF_ST_PRECISION = 1000;
         constexpr static const int DEF_GYRO_CT_SHIFT_DELTA = 500;
         const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
@@ -296,6 +490,11 @@ namespace inv {
 
     class icm20602_t : public mpu6500Series_t {
     public:
+        /**
+         * icm20602_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         icm20602_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c) {}
 
         int SoftReset(void) override;
@@ -311,6 +510,11 @@ namespace inv {
 
     class mpu9250_t : public mpu6500Series_t {
     public:
+        /**
+         * mpu9250_t 
+         * 
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         */
         mpu9250_t(i2cInterface_t &_i2c);
         int Init(config_t _cfg = config_t()) override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
@@ -332,10 +536,26 @@ namespace inv {
         uint8_t RegSelfTestXGyro() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
 
     public:
+        /**
+         * @brief   使用mpu9250的片上iic主机控制器读写挂载在mpu9250 iic bus上的iic从机
+         * @param  {unsigned} char  : iic从机地址
+         * @param  {unsigned} char  : 从机寄存器地址
+         * @param  {unsigned*} char : 缓存地址
+         * @param  {unsigned} int   : 数据长度
+         * @return {int}            : 错误码
+         */
         int SubI2cRead(unsigned char addr,
                        unsigned char reg,
                        unsigned char *val,
                        unsigned int len = 1);
+        /**
+         * @brief   使用mpu9250的片上iic主机控制器读写挂载在mpu9250 iic bus上的iic从机
+         * @param  {unsigned} char        : iic从机地址
+         * @param  {unsigned} char        : 从机寄存器地址
+         * @param  {const unsigned*} char : 缓存地址
+         * @param  {unsigned} int         : 数据长度
+         * @return {int}                  : 错误码
+         */
         int SubI2cWrite(unsigned char addr,
                         unsigned char reg,
                         const unsigned char *val,
@@ -366,7 +586,12 @@ namespace inv {
 
     class imuPtr_t : public std::shared_ptr<imu_t> {
     public:
+        /**
+         * @brief   在堆上创建并接管mpu6050,mpu9250,icm20602对象
+         * @param  {i2cInterface_t &} _i2c : 用哪个iic和传感器通讯啊？
+         * @return {int}                   : 错误码
+         */
         int Load(i2cInterface_t &_i2c);
     };
 }
-#endif //REMOTEIIC_DRV_IMU_HPP
+#endif //REMOTEIIC_DRV_IMU_INVENSENSE_HPP
