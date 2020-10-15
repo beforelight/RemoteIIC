@@ -175,25 +175,25 @@ namespace inv {
 
     class mpuxxxx_t : public imu_t {
     public:
-        int Init(config_t _cfg = config_t());
+        int Init(config_t _cfg = config_t()) override;
 
-        bool Detect() { return false; }
+        bool Detect() override { return false; }
 
-        int SelfTest() { return 0; }
+        int SelfTest() override { return 0; }
 
         int Converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z);
+                      float *gyro_x, float *gyro_y, float *gyro_z) override;
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
+                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
         int Converter(float *mag_x, float *mag_y, float *mag_z);
-        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
+        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
 
-        int Converter(float *temp) { return 0; }
+        int Converter(float *temp) override { return 0; }
 
-        int ReadSensorBlocking();
-        int ReadSensorNonBlocking();
+        int ReadSensorBlocking() override;
+        int ReadSensorNonBlocking() override;
 
-        std::string Report() { return std::string(); }
+        std::string Report() override { return std::string(); }
 
     public:
         virtual int SoftReset(void) = 0;
@@ -213,11 +213,11 @@ namespace inv {
     public:
         mpu6050_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
 
-        bool Detect();
-        int SelfTest();
-        int Converter(float *temp);
-        std::string Report();
-        int SoftReset(void);
+        bool Detect() override;
+        int SelfTest() override;
+        int Converter(float *temp) override;
+        std::string Report() override;
+        int SoftReset(void) override;
     };
 
     class mpu6500Series_t : public mpuxxxx_t {
@@ -225,7 +225,7 @@ namespace inv {
         mpu6500Series_t(i2cInterface_t &_i2c) : mpuxxxx_t(_i2c) {}
 
     public:
-        int SelfTest();
+        int SelfTest() override;
         virtual uint8_t REG_SELF_TEST_X_ACCEL() = 0;
         virtual uint8_t REG_SELF_TEST_X_GYRO() = 0;
         constexpr static int DEF_ST_PRECISION = 1000;
@@ -244,36 +244,36 @@ namespace inv {
     public:
         icm20602_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c) {}
 
-        int SoftReset(void);
-        bool Detect();
-        int Converter(float *temp);
-        std::string Report();
+        int SoftReset(void) override;
+        bool Detect() override;
+        int Converter(float *temp) override;
+        std::string Report() override;
 
-        uint8_t REG_SELF_TEST_X_ACCEL() { return (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL; }
+        uint8_t REG_SELF_TEST_X_ACCEL() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL; }
 
-        uint8_t REG_SELF_TEST_X_GYRO() { return (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO; }
+        uint8_t REG_SELF_TEST_X_GYRO() override { return (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO; }
     };
 
     class mpu9250_t : public mpu6500Series_t {
     public:
         mpu9250_t(i2cInterface_t &_i2c);
-        int init(config_t _cfg = config_t());
-        bool Detect();
+        int Init(config_t _cfg = config_t()) override;
+        bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z);
+                      float *gyro_x, float *gyro_y, float *gyro_z) override;
         int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
-        int Converter(float *mag_x, float *mag_y, float *mag_z);
-        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
-        int Converter(float *temp);
-        int ReadSensorBlocking();
-        int ReadSensorNonBlocking();
-        std::string Report();
-        int SoftReset(void);
+                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
+        int Converter(float *mag_x, float *mag_y, float *mag_z) override;
+        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+        int Converter(float *temp) override;
+        int ReadSensorBlocking() override;
+        int ReadSensorNonBlocking() override;
+        std::string Report() override;
+        int SoftReset(void) override;
 
-        uint8_t REG_SELF_TEST_X_ACCEL() { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL; }
+        uint8_t REG_SELF_TEST_X_ACCEL() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL; }
 
-        uint8_t REG_SELF_TEST_X_GYRO() { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
+        uint8_t REG_SELF_TEST_X_GYRO() override { return (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO; }
 
     public:
         int SubI2cRead(unsigned char addr,

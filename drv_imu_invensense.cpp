@@ -529,7 +529,7 @@ namespace inv {
     }
 
 
-    int mpu9250_t::init(config_t _cfg) {
+    int mpu9250_t::Init(config_t _cfg) {
         int res = mpuxxxx_t::Init((_cfg));
         if (res != 0) { return res; }
         ClearIsOpen();
