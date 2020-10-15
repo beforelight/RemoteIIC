@@ -218,6 +218,18 @@ namespace inv {
         int Converter(float *temp) override;
         std::string Report() override;
         int SoftReset(void) override;
+
+        constexpr static const uint16_t accelSelfTestEquation[32] = {
+                1347, 1393, 1440, 1488, 1538, 1590, 1644, 1699,
+                1757, 1816, 1877, 1941, 2006, 2074, 2144, 2216,
+                2291, 2368, 2448, 2531, 2616, 2704, 2795, 2890,
+                2987, 3088, 3192, 3300, 3411, 3526, 3645, 3768,
+        };
+        constexpr static const uint16_t gyroSelfTestEquation[32] = {
+                3131, 3275, 3426, 3583, 3748, 3920, 4101, 4289,
+                4487, 4693, 4909, 5135, 5371, 5618, 5877, 6147,
+                6430, 6725, 7035, 7358, 7697, 8051, 8421, 8809,
+                9214, 9638, 10081, 10545, 11030, 11537, 12068, 12623};
     };
 
     class mpu6500Series_t : public mpuxxxx_t {
@@ -228,16 +240,51 @@ namespace inv {
         int SelfTest() override;
         virtual uint8_t REG_SELF_TEST_X_ACCEL() = 0;
         virtual uint8_t REG_SELF_TEST_X_GYRO() = 0;
-        constexpr static int DEF_ST_PRECISION = 1000;
-        constexpr static int DEF_GYRO_CT_SHIFT_DELTA = 500;
+        constexpr static const int DEF_ST_PRECISION = 1000;
+        constexpr static const int DEF_GYRO_CT_SHIFT_DELTA = 500;
         const int DEF_ACCEL_ST_SHIFT_DELTA = 500;
         /* Gyro Offset Max Value (dps) */
-        constexpr static int DEF_GYRO_OFFSET_MAX = 20;
+        constexpr static const int DEF_GYRO_OFFSET_MAX = 20;
         /* Gyro Self Test Absolute Limits ST_AL (dps) */
-        constexpr static int DEF_GYRO_ST_AL = 60;
+        constexpr static const int DEF_GYRO_ST_AL = 60;
         /* Accel Self Test Absolute Limits ST_AL (mg) */
-        constexpr static int DEF_ACCEL_ST_AL_MIN = 225;
-        constexpr static int DEF_ACCEL_ST_AL_MAX = 675;
+        constexpr static const int DEF_ACCEL_ST_AL_MIN = 225;
+        constexpr static const int DEF_ACCEL_ST_AL_MAX = 675;
+
+        constexpr static const uint16_t sSelfTestEquation[256] = {
+                2620, 2646, 2672, 2699, 2726, 2753, 2781, 2808,
+                2837, 2865, 2894, 2923, 2952, 2981, 3011, 3041,
+                3072, 3102, 3133, 3165, 3196, 3228, 3261, 3293,
+                3326, 3359, 3393, 3427, 3461, 3496, 3531, 3566,
+                3602, 3638, 3674, 3711, 3748, 3786, 3823, 3862,
+                3900, 3939, 3979, 4019, 4059, 4099, 4140, 4182,
+                4224, 4266, 4308, 4352, 4395, 4439, 4483, 4528,
+                4574, 4619, 4665, 4712, 4759, 4807, 4855, 4903,
+                4953, 5002, 5052, 5103, 5154, 5205, 5257, 5310,
+                5363, 5417, 5471, 5525, 5581, 5636, 5693, 5750,
+                5807, 5865, 5924, 5983, 6043, 6104, 6165, 6226,
+                6289, 6351, 6415, 6479, 6544, 6609, 6675, 6742,
+                6810, 6878, 6946, 7016, 7086, 7157, 7229, 7301,
+                7374, 7448, 7522, 7597, 7673, 7750, 7828, 7906,
+                7985, 8065, 8145, 8227, 8309, 8392, 8476, 8561,
+                8647, 8733, 8820, 8909, 8998, 9088, 9178, 9270,
+                9363, 9457, 9551, 9647, 9743, 9841, 9939, 10038,
+                10139, 10240, 10343, 10446, 10550, 10656, 10763, 10870,
+                10979, 11089, 11200, 11312, 11425, 11539, 11654, 11771,
+                11889, 12008, 12128, 12249, 12371, 12495, 12620, 12746,
+                12874, 13002, 13132, 13264, 13396, 13530, 13666, 13802,
+                13940, 14080, 14221, 14363, 14506, 14652, 14798, 14946,
+                15096, 15247, 15399, 15553, 15709, 15866, 16024, 16184,
+                16346, 16510, 16675, 16842, 17010, 17180, 17352, 17526,
+                17701, 17878, 18057, 18237, 18420, 18604, 18790, 18978,
+                19167, 19359, 19553, 19748, 19946, 20145, 20347, 20550,
+                20756, 20963, 21173, 21385, 21598, 21814, 22033, 22253,
+                22475, 22700, 22927, 23156, 23388, 23622, 23858, 24097,
+                24338, 24581, 24827, 25075, 25326, 25579, 25835, 26093,
+                26354, 26618, 26884, 27153, 27424, 27699, 27976, 28255,
+                28538, 28823, 29112, 29403, 29697, 29994, 30294, 30597,
+                30903, 31212, 31524, 31839, 32157, 32479, 32804
+        };
     };
 
     class icm20602_t : public mpu6500Series_t {
@@ -285,20 +332,20 @@ namespace inv {
                         const unsigned char *val,
                         unsigned int len = 1);
     public:
-        constexpr static int MPU9250_I2C_SLV4_EN = 0x80;
-        constexpr static int MPU9250_I2C_SLV4_DONE = 0x40;
-        constexpr static int MPU9250_I2C_SLV4_NACK = 0x10;
-        constexpr static int MPU9250_AK8963_I2C_ADDR = 0x0C;
-        constexpr static int MPU9250_AK8963_POWER_DOWN = 0x10;
-        constexpr static int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
-        constexpr static int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;
-        constexpr static int MPU9250_AK8963_CONTINUOUS_MEASUREMENT = 0x16; //MODE 2
-        constexpr static int MPU9250_AK8963_DATA_READY = (0x01);
-        constexpr static int MPU9250_AK8963_DATA_OVERRUN = (0x02);
-        //constexpr static int MPU9250_AK8963_OVERFLOW = (0x80);
-        constexpr static int MPU9250_AK8963_OVERFLOW = (0x08);
-        constexpr static int MPU9250_AK8963_DATA_ERROR = (0x40);
-        constexpr static int MPU9250_AK8963_CNTL2_SRST = 0x01;
+        constexpr static const int MPU9250_I2C_SLV4_EN = 0x80;
+        constexpr static const int MPU9250_I2C_SLV4_DONE = 0x40;
+        constexpr static const int MPU9250_I2C_SLV4_NACK = 0x10;
+        constexpr static const int MPU9250_AK8963_I2C_ADDR = 0x0C;
+        constexpr static const int MPU9250_AK8963_POWER_DOWN = 0x10;
+        constexpr static const int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
+        constexpr static const int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;
+        constexpr static const int MPU9250_AK8963_CONTINUOUS_MEASUREMENT = 0x16; //MODE 2
+        constexpr static const int MPU9250_AK8963_DATA_READY = (0x01);
+        constexpr static const int MPU9250_AK8963_DATA_OVERRUN = (0x02);
+        //constexpr static const int MPU9250_AK8963_OVERFLOW = (0x80);
+        constexpr static const int MPU9250_AK8963_OVERFLOW = (0x08);
+        constexpr static const int MPU9250_AK8963_DATA_ERROR = (0x40);
+        constexpr static const int MPU9250_AK8963_CNTL2_SRST = 0x01;
 
     private:
         uint8_t buf[22];

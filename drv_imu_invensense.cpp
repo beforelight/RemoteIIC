@@ -456,8 +456,8 @@ namespace inv {
         res |= i2c.ReadBlocking(GetI2cAddr(), (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
         int a_st[3];
         int g_st[3];
-        float ft_a[3];
-        float ft_g[3];
+        int ft_a[3];
+        int ft_g[3];
         a_st[0] = ((0b111 & (regs[0] >> 5)) << 2) | (0b11 & (regs[3] >> 4));
         a_st[1] = ((0b111 & (regs[1] >> 5)) << 2) | (0b11 & (regs[3] >> 2));
         a_st[2] = ((0b111 & (regs[2] >> 5)) << 2) | (0b11 & (regs[3] >> 0));
@@ -465,12 +465,19 @@ namespace inv {
         g_st[1] = 0b11111 & regs[1];
         g_st[2] = 0b11111 & regs[2];
 
-        ft_a[0] = (a_st[0] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[0] - 1) / ((1 << 5) - 2));
-        ft_a[1] = (a_st[1] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[1] - 1) / ((1 << 5) - 2));
-        ft_a[2] = (a_st[2] == 0) ? 0 : 1000 * 4096 * 0.34 * pow(0.92 / 0.34, (float) (a_st[2] - 1) / ((1 << 5) - 2));
-        ft_g[0] = (g_st[0] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, (float) g_st[0] - 1);
-        ft_g[1] = (g_st[1] == 0) ? 0 : 1000 * -25 * 131 * pow(1.046, (float) g_st[1] - 1);
-        ft_g[2] = (g_st[2] == 0) ? 0 : 1000 * 25 * 131 * pow(1.046, (float) g_st[2] - 1);
+        a_st[0]&=(32-1);
+        a_st[1]&=(32-1);
+        a_st[2]&=(32-1);
+        g_st[0]&=(32-1);
+        g_st[1]&=(32-1);
+        g_st[2]&=(32-1);
+
+        ft_a[0] = 1000*accelSelfTestEquation[a_st[0]];
+        ft_a[1] = 1000*accelSelfTestEquation[a_st[1]];
+        ft_a[2] = 1000*accelSelfTestEquation[a_st[2]];
+        ft_g[0] = 1000*gyroSelfTestEquation[g_st[0]];
+        ft_g[1] = -1000*gyroSelfTestEquation[g_st[1]];
+        ft_g[2] = 1000*gyroSelfTestEquation[g_st[2]];
 
         for (int i = 0; i < 3; ++i) {
             int str = accel_bias_st[i] - accel_bias_regular[i];
