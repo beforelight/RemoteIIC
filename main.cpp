@@ -1,6 +1,6 @@
 #include <iostream>
 #include"remote_i2c.h"
-#include"drv_imu_invensense.hpp"
+#include"drv_imu.hpp"
 
 int remote_i2c_read(void *context,
                     unsigned char addr, unsigned char reg,

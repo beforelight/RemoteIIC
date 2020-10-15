@@ -2,13 +2,13 @@
 // Created by 17616 on 2020/10/12.
 //
 
-#ifndef REMOTEIIC_DRV_IMU_INVENSENSE_HPP
-#define REMOTEIIC_DRV_IMU_INVENSENSE_HPP
+#ifndef REMOTEIIC_DRV_IMU_HPP
+#define REMOTEIIC_DRV_IMU_HPP
 
 #include <cstdint>
 #include <string>
 #include <memory>
-#include "drv_imu_invensense_def.hpp"
+#include "drv_imu_def.hpp"
 #ifdef INV_IMU_DEBUG
 #ifdef __linux__
 #include<iostream>
@@ -21,7 +21,7 @@ namespace inv {
     class i2cInterface_t;//i2c接口类
     struct config_t;//设置量程和数字低通滤波器
     class imu_t;//imu接口类
-    class mpuxxxxSeries_t;//基类，抽象出invensense的mpu系列以及部分icm系列imu的初始化/数据转换api
+    class mpuSeries_t;//基类，抽象出invensense的mpu系列以及部分icm系列imu的初始化/数据转换api
     class mpu6050_t;//mpu6050驱动
     class mpu6500Series_t;//基类，抽象出mpu6500系列以及部分icm系列imu的自检api
     class icm20602_t;//icm20602驱动
@@ -183,7 +183,7 @@ namespace inv {
         config_t cfg;
     };
 
-    class mpuxxxxSeries_t : public imu_t {
+    class mpuSeries_t : public imu_t {
     public:
         int Init(config_t _cfg = config_t()) override;
 
@@ -212,16 +212,16 @@ namespace inv {
 
 
     protected:
-        mpuxxxxSeries_t(i2cInterface_t &_i2c);
+        mpuSeries_t(i2cInterface_t &_i2c);
         float accelUnit;
         float gyroUnit;
         uint8_t buf[14];
     };
 
 
-    class mpu6050_t : public mpuxxxxSeries_t {
+    class mpu6050_t : public mpuSeries_t {
     public:
-        mpu6050_t(i2cInterface_t &_i2c) : mpuxxxxSeries_t(_i2c) {}
+        mpu6050_t(i2cInterface_t &_i2c) : mpuSeries_t(_i2c) {}
 
         bool Detect() override;
         int SelfTest() override;
@@ -242,9 +242,9 @@ namespace inv {
                 9214, 9638, 10081, 10545, 11030, 11537, 12068, 12623};
     };
 
-    class mpu6500Series_t : public mpuxxxxSeries_t {
+    class mpu6500Series_t : public mpuSeries_t {
     protected:
-        mpu6500Series_t(i2cInterface_t &_i2c) : mpuxxxxSeries_t(_i2c) {}
+        mpu6500Series_t(i2cInterface_t &_i2c) : mpuSeries_t(_i2c) {}
 
     public:
         int SelfTest() override;
@@ -370,4 +370,4 @@ namespace inv {
         int Load(i2cInterface_t &_i2c);
     };
 }
-#endif //REMOTEIIC_DRV_IMU_INVENSENSE_HPP
+#endif //REMOTEIIC_DRV_IMU_HPP

@@ -3,7 +3,7 @@
 //
 #include <cstring>
 #include <cmath>
-#include"drv_imu_invensense.hpp"
+#include"drv_imu.hpp"
 
 bool inv::icm20602_t::Detect() {
     uint8_t val;
@@ -174,7 +174,7 @@ int inv::mpu6500Series_t::SelfTest() {
 namespace inv {
 
 
-    int mpuxxxxSeries_t::Init(config_t _cfg) {
+    int mpuSeries_t::Init(config_t _cfg) {
         SetConfig(_cfg);
         ClearIsOpen();
         int res = 0;
@@ -295,8 +295,8 @@ namespace inv {
         return res;
     }
 
-    int mpuxxxxSeries_t::Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x,
-                                   int16_t *gyro_y, int16_t *gyro_z) {
+    int mpuSeries_t::Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x,
+                               int16_t *gyro_y, int16_t *gyro_z) {
         if (acc_x) { *acc_x = ((int16_t) (buf[0] << 8) | buf[1]); }
         if (acc_y) { *acc_y = ((int16_t) (buf[2] << 8) | buf[3]); }
         if (acc_z) { *acc_z = ((int16_t) (buf[4] << 8) | buf[5]); }
@@ -306,8 +306,8 @@ namespace inv {
         return 0;
     }
 
-    int mpuxxxxSeries_t::Converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y,
-                                   float *gyro_z) {
+    int mpuSeries_t::Converter(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y,
+                               float *gyro_z) {
         if (acc_x) { *acc_x = accelUnit * ((int16_t) (buf[0] << 8) | buf[1]); }
         if (acc_y) { *acc_y = accelUnit * ((int16_t) (buf[2] << 8) | buf[3]); }
         if (acc_z) { *acc_z = accelUnit * ((int16_t) (buf[4] << 8) | buf[5]); }
@@ -322,11 +322,11 @@ namespace inv {
         return 0;
     }
 
-    int mpuxxxxSeries_t::ReadSensorBlocking() {
+    int mpuSeries_t::ReadSensorBlocking() {
         return i2c.ReadBlocking(GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
-    int mpuxxxxSeries_t::ReadSensorNonBlocking() {
+    int mpuSeries_t::ReadSensorNonBlocking() {
         return i2c.ReadNonBlocking(GetI2cAddr(),
                                    (uint8_t) icm20602_RegMap::ACCEL_XOUT_H,
                                    buf, 14);
@@ -349,27 +349,27 @@ namespace inv {
         return res;
     }
 
-    bool mpuxxxxSeries_t::DataReady() {
+    bool mpuSeries_t::DataReady() {
         uint8_t val = 0;
         ReadReg((uint8_t) icm20602_RegMap::INT_STATUS, &val);
         return (val & 0x01) == 0x01;
     }
 
-    mpuxxxxSeries_t::mpuxxxxSeries_t(i2cInterface_t &_i2c) : imu_t(_i2c), accelUnit(0), gyroUnit(0) {
+    mpuSeries_t::mpuSeries_t(i2cInterface_t &_i2c) : imu_t(_i2c), accelUnit(0), gyroUnit(0) {
         memset(buf, 0, sizeof(buf));
     }
 
-    int mpuxxxxSeries_t::Converter(float *mag_x, float *mag_y, float *mag_z) {
+    int mpuSeries_t::Converter(float *mag_x, float *mag_y, float *mag_z) {
         (void) mag_x, (void) mag_y, (void) mag_z;
         return 0;
     }
 
-    int mpuxxxxSeries_t::Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
+    int mpuSeries_t::Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
         (void) mag_x, (void) mag_y, (void) mag_z;
         return 0;
     }
 
-    int mpuxxxxSeries_t::EnableDataReadyInt() {
+    int mpuSeries_t::EnableDataReadyInt() {
         //enables interrupt generation by DATA_RDY
         return ModifyReg((uint8_t) icm20602_RegMap::INT_ENABLE, 0x01, 0x01);
     }
@@ -420,7 +420,7 @@ namespace inv {
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
-            mpuxxxxSeries_t::Converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            mpuSeries_t::Converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_regular[i] += gbuf[i];
                 accel_bias_regular[i] += abuf[i];
@@ -437,7 +437,7 @@ namespace inv {
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
-            mpuxxxxSeries_t::Converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            mpuSeries_t::Converter(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_st[i] += gbuf[i];
                 accel_bias_st[i] += abuf[i];
@@ -503,8 +503,8 @@ namespace inv {
 
     int mpu6050_t::Converter(float *temp) {
         if (temp) {
-            *temp = (float) ((int16_t) (mpuxxxxSeries_t::buf[6] << 8)
-                             | mpuxxxxSeries_t::buf[7] - 521) / 340.0f + 35;
+            *temp = (float) ((int16_t) (mpuSeries_t::buf[6] << 8)
+                             | mpuSeries_t::buf[7] - 521) / 340.0f + 35;
         }
         return 0;
     }
@@ -537,7 +537,7 @@ namespace inv {
 
 
     int mpu9250_t::Init(config_t _cfg) {
-        int res = mpuxxxxSeries_t::Init((_cfg));
+        int res = mpuSeries_t::Init((_cfg));
         if (res != 0) { return res; }
         ClearIsOpen();
 
