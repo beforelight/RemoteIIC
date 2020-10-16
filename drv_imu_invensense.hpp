@@ -6,44 +6,28 @@
  * @date 2020-10-16
  */
 
-#ifndef REMOTEIIC_DRV_IMU_INVENSENSE_HPP
-#define REMOTEIIC_DRV_IMU_INVENSENSE_HPP
+#ifndef DRV_IMU_INVENSENSE_HPP
+#define DRV_IMU_INVENSENSE_HPP
 
 #include <cstdint>
 #include <string>
 #include <memory>
 #include "drv_imu_invensense_def.hpp"
-#if defined(INV_IMU_DEBUG)
+#include "drv_imu_invensense_port.hpp"
+
 #if defined(__linux__)
 #include<iostream>
-#define INV_PRINTF printf
-#define INV_YES_TRACE
-#undef INV_NO_DEBUG
-#endif//defined(__linux__)
-#else
-#define INV_PRINTF(...)
-#endif//defined(INV_IMU_DEBUG)
-#if !defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
-#error "plase def INV_PRINTF for debug and trace or undef INV_IMU_DEBUG"
-#elif defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
-#ifdef INV_YES_TRACE
+#undef INV_TRACE_
+#undef INV_TRACE
+#undef INV_DEBUG_
+#undef INV_DEBUG
 #define INV_TRACE_(fmt, ...) \
-    INV_PRINTF("%s:%d:trace: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
+    printf("%s:%d:trace: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
 #define INV_TRACE(...) INV_TRACE_(__VA_ARGS__, "")
-#else
-#define INV_TRACE(...)
-#endif //INV_YES_TRACE
-#ifndef INV_NO_DEBUG
 #define INV_DEBUG_(fmt, ...) \
-    INV_PRINTF("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
+    printf("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
 #define INV_DEBUG(...) INV_DEBUG_(__VA_ARGS__, "")
-#else
-#define INV_DEBUG(...)
-#endif//INV_NO_DEBUG
-#else
-#define INV_TRACE(...)
-#define INV_DEBUG(...)
-#endif//!defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
+#endif//defined(__linux__)
 
 
 namespace inv {
@@ -58,112 +42,7 @@ namespace inv {
     class imuPtr_t;//imu的智能指针类，用于实例化imu对象
 
 
-    //i2c接口
-    class i2cInterface_t {
-    public:
-        /**
-         * @param  _context          :调用函数指针传入的用户参数
-         * @param  _readBlocking     :约定如下，阻塞读
-         *  **************************************************
-         *  * @brief   这里的函数指针的参数约定
-         *  * @param  {void*}                : 用户参数
-         *  * @param  {unsigned char}        : iic从机地址
-         *  * @param  {unsigned char}        : 从机寄存器地址
-         *  * @param  {const unsigned* char} : 缓存地址
-         *  * @param  {unsigned int}         : 数据长度
-         *  * @return {int}                  : 错误码
-         *  **************************************************
-         * @param  _writeBlocking    :约定同上，阻塞写
-         * @param  _readNonBlocking  :约定同上，非阻塞读
-         * @param  _writeNonBlocking :约定同上，非阻塞写
-         */
-        i2cInterface_t(void *_context,
-                       int (*_readBlocking)(void *context,
-                                            unsigned char addr, unsigned char reg,
-                                            unsigned char *val, unsigned int len),
-                       int (*_writeBlocking)(void *context,
-                                             unsigned char addr, unsigned char reg,
-                                             const unsigned char *val, unsigned int len),
-                       int (*_readNonBlocking)(void *context,
-                                               unsigned char addr, unsigned char reg,
-                                               unsigned char *val, unsigned int len),
-                       int (*_writeNonBlocking)(void *context,
-                                                unsigned char addr, unsigned char reg,
-                                                const unsigned char *val, unsigned int len))
-                : context(_context), readBlocking(_readBlocking), writeBlocking(_writeBlocking),
-                  readNonBlocking(_readNonBlocking), writeNonBlocking(_writeNonBlocking) {}
 
-        /**
-         * @brief imu_t会调用此方法实现读写iic
-         *          此方法将调用构造时传入的函数指针
-         * @param  {unsigned} char  : 
-         * @param  {unsigned} char  : 
-         * @param  {unsigned*} char : 
-         * @param  {unsigned} int   : 
-         * @return {int}            : 错误码
-         */
-        int ReadBlocking(unsigned char addr, unsigned char reg,
-                         unsigned char *val, unsigned int len) {
-            return (*readBlocking)(context, addr, reg, val, len);
-        }
-
-        /**
-         * @brief imu_t会调用此方法实现读写iic
-         *          此方法将调用构造时传入的函数指针
-         * @param  {unsigned} char        : 
-         * @param  {unsigned} char        : 
-         * @param  {const unsigned*} char : 
-         * @param  {unsigned} int         : 
-         * @return {int}                  : 错误码
-         */
-        int WriteBlocking(unsigned char addr, unsigned char reg,
-                          const unsigned char *val, unsigned int len) {
-            return (*writeBlocking)(context, addr, reg, val, len);
-        }
-
-        /**
-         * @brief imu_t会调用此方法实现异步读写iic
-         *          此方法将调用构造时传入的函数指针
-         * @param  {unsigned} char  : 
-         * @param  {unsigned} char  : 
-         * @param  {unsigned*} char : 
-         * @param  {unsigned} int   : 
-         * @return {int}            : 错误码
-         */
-        int ReadNonBlocking(unsigned char addr, unsigned char reg,
-                            unsigned char *val, unsigned int len) {
-            return (*readNonBlocking)(context, addr, reg, val, len);
-        }
-
-        /**
-         * @brief imu_t会调用此方法实现异步读写iic
-         *          此方法将调用构造时传入的函数指针
-         * @param  {unsigned} char        : 
-         * @param  {unsigned} char        : 
-         * @param  {const unsigned*} char : 
-         * @param  {unsigned} int         : 
-         * @return {int}                  : 错误码
-         */
-        int WriteNonBlocking(unsigned char addr, unsigned char reg,
-                             const unsigned char *val, unsigned int len) {
-            return (*writeNonBlocking)(context, addr, reg, val, len);
-        }
-
-    protected:
-        void *context;
-        int (*readBlocking)(void *context,
-                            unsigned char addr, unsigned char reg,
-                            unsigned char *val, unsigned int len);
-        int (*writeBlocking)(void *context,
-                             unsigned char addr, unsigned char reg,
-                             const unsigned char *val, unsigned int len);
-        int (*readNonBlocking)(void *context,
-                               unsigned char addr, unsigned char reg,
-                               unsigned char *val, unsigned int len);
-        int (*writeNonBlocking)(void *context,
-                                unsigned char addr, unsigned char reg,
-                                const unsigned char *val, unsigned int len);
-    };
 
     struct config_t {
         enum mpu_accel_fs {    // In the ACCEL_CONFIG (0x1C) register, the full scale select  bits are :
@@ -214,6 +93,8 @@ namespace inv {
 
     class imu_t {
     public:
+        virtual ~imu_t() {}
+
         /**
          * @brief   初始化imu，初始化之后才能使用其他方法
          * @param  {config_t} _cfg : 量程等配置信息
@@ -337,19 +218,15 @@ namespace inv {
 
     class mpuSeries_t : public imu_t {
     public:
-        virtual ~mpuSeries_t(){}
+        virtual ~mpuSeries_t() {}
+
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z) override;
         int Converter(float *mag_x, float *mag_y, float *mag_z) override;
-
-
-
         int ReadSensorBlocking() override;
         int ReadSensorNonBlocking() override;
-
-
     public:
         /**
          * @brief   软复位，可以在初始化之前执行
@@ -364,11 +241,11 @@ namespace inv {
          * @param  {int16_t*} acc_z  : 可以等于NULL
          * @param  {int16_t*} gyro_x : 可以等于NULL
          * @param  {int16_t*} gyro_y : 可以等于NULL
-         * @param  {int16_t*} gyro_z : 可以等于NULLs
+         * @param  {int16_t*} gyro_z : 可以等于NULL
          * @return {int}             : 错误码
          */
         virtual int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) ;
+                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z);
         /**
          * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为LSB
          * @param  {int16_t*} mag_x : 可以等于NULL
@@ -424,7 +301,8 @@ namespace inv {
 
     class mpu6050_t : public mpuSeries_t {
     public:
-        virtual ~mpu6050_t(){}
+        virtual ~mpu6050_t() {}
+
         /**
          * mpu6050_t 
          * 
@@ -454,7 +332,8 @@ namespace inv {
 
     class mpu6500Series_t : public mpuSeries_t {
     protected:
-        virtual ~mpu6500Series_t(){}
+        virtual ~mpu6500Series_t() {}
+
         /**
          * mpu6500Series_t 
          * 
@@ -526,7 +405,8 @@ namespace inv {
 
     class icm20602_t : public mpu6500Series_t {
     public:
-        virtual ~icm20602_t(){}
+        virtual ~icm20602_t() {}
+
         /**
          * icm20602_t 
          * 
@@ -547,7 +427,8 @@ namespace inv {
 
     class mpu9250_t : public mpu6500Series_t {
     public:
-        virtual ~mpu9250_t(){}
+        virtual ~mpu9250_t() {}
+
         /**
          * mpu9250_t 
          * 
@@ -576,28 +457,23 @@ namespace inv {
     public:
         /**
          * @brief   使用mpu9250的片上iic主机控制器读写挂载在mpu9250 iic bus上的iic从机
-         * @param  {unsigned} char  : iic从机地址
-         * @param  {unsigned} char  : 从机寄存器地址
-         * @param  {unsigned*} char : 缓存地址
-         * @param  {unsigned} int   : 数据长度
-         * @return {int}            : 错误码
+         * @param  {uint8_t} addr :  iic从机地址
+         * @param  {uint8_t} reg  :  从机寄存器地址
+         * @param  {uint8_t*} val :  缓存地址
+         * @param  {unsigned} int :  数据长度
+         * @return {int}          :  错误码
          */
-        int SubI2cRead(unsigned char addr,
-                       unsigned char reg,
-                       unsigned char *val,
-                       unsigned int len = 1);
+        int SubI2cRead(uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len = 1);
+
         /**
          * @brief   使用mpu9250的片上iic主机控制器读写挂载在mpu9250 iic bus上的iic从机
-         * @param  {unsigned} char        : iic从机地址
-         * @param  {unsigned} char        : 从机寄存器地址
-         * @param  {const unsigned*} char : 缓存地址
-         * @param  {unsigned} int         : 数据长度
-         * @return {int}                  : 错误码
+         * @param  {uint8_t} addr       : iic从机地址
+         * @param  {uint8_t} reg        : 从机寄存器地址
+         * @param  {const uint8_t*} val : 缓存地址
+         * @param  {unsigned} int       : 数据长度
+         * @return {int}                : 错误码
          */
-        int SubI2cWrite(unsigned char addr,
-                        unsigned char reg,
-                        const unsigned char *val,
-                        unsigned int len = 1);
+        int SubI2cWrite(uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len = 1);
     public:
         constexpr static const int MPU9250_I2C_SLV4_EN = 0x80;
         constexpr static const int MPU9250_I2C_SLV4_DONE = 0x40;
@@ -632,4 +508,4 @@ namespace inv {
         int Load(i2cInterface_t &_i2c);
     };
 }
-#endif //REMOTEIIC_DRV_IMU_INVENSENSE_HPP
+#endif //DRV_IMU_INVENSENSE_HPP

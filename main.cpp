@@ -11,8 +11,8 @@
  * @return {int}            : 错误码
  */
 int remote_i2c_read(void *context,
-                    unsigned char addr, unsigned char reg,
-                    unsigned char *val, unsigned int len) {
+                    uint8_t addr, uint8_t reg,
+                    uint8_t *val, unsigned int len) {
     return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
 }
 /**
@@ -25,8 +25,8 @@ int remote_i2c_read(void *context,
  * @return {int}                  : 错误码
  */
 int remote_i2c_write(void *context,
-                     unsigned char addr, unsigned char reg,
-                     const unsigned char *val, unsigned int len) {
+                     uint8_t addr, uint8_t reg,
+                     const uint8_t *val, unsigned int len) {
     return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
 }
 
