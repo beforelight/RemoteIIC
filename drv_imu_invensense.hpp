@@ -1,6 +1,10 @@
-//
-// Created by 17616 on 2020/10/12.
-//
+/**
+ * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
+ * @author xiao qq1761690868
+ * @doc drv_imu_invensense.md
+ * @version v1.0
+ * @date 2020-10-16
+ */
 
 #ifndef REMOTEIIC_DRV_IMU_INVENSENSE_HPP
 #define REMOTEIIC_DRV_IMU_INVENSENSE_HPP
@@ -9,14 +13,39 @@
 #include <string>
 #include <memory>
 #include "drv_imu_invensense_def.hpp"
-#ifdef INV_IMU_DEBUG
-#ifdef __linux__
+#if defined(INV_IMU_DEBUG)
+#if defined(__linux__)
 #include<iostream>
 #define INV_PRINTF printf
-#endif
+#define INV_YES_TRACE
+#undef INV_NO_DEBUG
+#endif//defined(__linux__)
 #else
 #define INV_PRINTF(...)
-#endif
+#endif//defined(INV_IMU_DEBUG)
+#if !defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
+#error "plase def INV_PRINTF for debug and trace or undef INV_IMU_DEBUG"
+#elif defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
+#ifdef INV_YES_TRACE
+#define INV_TRACE_(fmt, ...) \
+    INV_PRINTF("%s:%d:trace: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
+#define INV_TRACE(...) INV_TRACE_(__VA_ARGS__, "")
+#else
+#define INV_TRACE(...)
+#endif //INV_YES_TRACE
+#ifndef INV_NO_DEBUG
+#define INV_DEBUG_(fmt, ...) \
+    INV_PRINTF("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
+#define INV_DEBUG(...) INV_DEBUG_(__VA_ARGS__, "")
+#else
+#define INV_DEBUG(...)
+#endif//INV_NO_DEBUG
+#else
+#define INV_TRACE(...)
+#define INV_DEBUG(...)
+#endif//!defined(INV_PRINTF)&&defined(INV_IMU_DEBUG)
+
+
 namespace inv {
     class i2cInterface_t;//i2c接口
     struct config_t;//设置量程和数字低通滤波器
@@ -218,18 +247,6 @@ namespace inv {
                               float *gyro_x, float *gyro_y, float *gyro_z) = 0;
 
         /**
-         * @brief   转换！！！缓存！！!中加速度和陀螺仪的数据到指定的地方，单位为LSB
-         * @param  {int16_t*} acc_x  : 可以等于NULL
-         * @param  {int16_t*} acc_y  : 可以等于NULL
-         * @param  {int16_t*} acc_z  : 可以等于NULL
-         * @param  {int16_t*} gyro_x : 可以等于NULL
-         * @param  {int16_t*} gyro_y : 可以等于NULL
-         * @param  {int16_t*} gyro_z : 可以等于NULL
-         * @return {int}             : 错误码
-         */
-        virtual int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) = 0;
-        /**
          * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为uT
          * @param  {float*} mag_x : 可以等于NULL
          * @param  {float*} mag_y : 可以等于NULL
@@ -237,14 +254,6 @@ namespace inv {
          * @return {int}          : 错误码
          */
         virtual int Converter(float *mag_x, float *mag_y, float *mag_z) = 0;
-        /**
-         * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为LSB
-         * @param  {int16_t*} mag_x : 可以等于NULL
-         * @param  {int16_t*} mag_y : 可以等于NULL
-         * @param  {int16_t*} mag_z : 可以等于NULL
-         * @return {int}            : 错误码
-         */
-        virtual int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) = 0;
 
         /**
          * @brief   调用阻塞IO读取传感器数据到缓存，当读取完成或者发送错误时返回
@@ -308,9 +317,9 @@ namespace inv {
 
         i2cInterface_t &i2c;
 
-        int WriteReg(uint8_t reg, const uint8_t val) { return i2c.WriteBlocking(addr, reg, &val, 1); };
+        int WriteReg(uint8_t reg, const uint8_t val);;
 
-        int ReadReg(uint8_t reg, uint8_t *val) { return i2c.ReadBlocking(addr, reg, val, 1); };
+        int ReadReg(uint8_t reg, uint8_t *val);;
 
         int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask) {
             uint8_t regVal;
@@ -328,14 +337,12 @@ namespace inv {
 
     class mpuSeries_t : public imu_t {
     public:
+        virtual ~mpuSeries_t(){}
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
                       float *gyro_x, float *gyro_y, float *gyro_z) override;
-        int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
-        int Converter(float *mag_x, float *mag_y, float *mag_z);
-        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+        int Converter(float *mag_x, float *mag_y, float *mag_z) override;
 
 
 
@@ -349,6 +356,27 @@ namespace inv {
          * @return {int}  : 错误码
          */
         virtual int SoftReset() = 0;
+
+        /**
+         * @brief   转换！！！缓存！！!中加速度和陀螺仪的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} acc_x  : 可以等于NULL
+         * @param  {int16_t*} acc_y  : 可以等于NULL
+         * @param  {int16_t*} acc_z  : 可以等于NULL
+         * @param  {int16_t*} gyro_x : 可以等于NULL
+         * @param  {int16_t*} gyro_y : 可以等于NULL
+         * @param  {int16_t*} gyro_z : 可以等于NULLs
+         * @return {int}             : 错误码
+         */
+        virtual int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
+                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) ;
+        /**
+         * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} mag_x : 可以等于NULL
+         * @param  {int16_t*} mag_y : 可以等于NULL
+         * @param  {int16_t*} mag_z : 可以等于NULL
+         * @return {int}            : 错误码
+         */
+        virtual int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
 
         /**
          * @brief   转换缓冲中的温度到其他地方，单位为摄氏度
@@ -396,6 +424,7 @@ namespace inv {
 
     class mpu6050_t : public mpuSeries_t {
     public:
+        virtual ~mpu6050_t(){}
         /**
          * mpu6050_t 
          * 
@@ -425,6 +454,7 @@ namespace inv {
 
     class mpu6500Series_t : public mpuSeries_t {
     protected:
+        virtual ~mpu6500Series_t(){}
         /**
          * mpu6500Series_t 
          * 
@@ -496,6 +526,7 @@ namespace inv {
 
     class icm20602_t : public mpu6500Series_t {
     public:
+        virtual ~icm20602_t(){}
         /**
          * icm20602_t 
          * 
@@ -516,6 +547,7 @@ namespace inv {
 
     class mpu9250_t : public mpu6500Series_t {
     public:
+        virtual ~mpu9250_t(){}
         /**
          * mpu9250_t 
          * 
@@ -586,7 +618,7 @@ namespace inv {
         uint8_t buf[22];
         uint8_t ak8963DeviceId;
         uint8_t ak8963Information;
-        const float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
+        constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
         float ak8963Asa[3];
     };
 

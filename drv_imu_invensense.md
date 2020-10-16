@@ -13,6 +13,8 @@
 
 override方法的注释请参看它在基类中的注释
 
+命名空间为inv
+
 ## 2.类图
 ![类图](ClassDiagram.png)
 
@@ -313,11 +315,8 @@ struct config_t {
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
         int Converter(float *acc_x, float *acc_y, float *acc_z,
-                      float *gyro_x, float *gyro_y, float *gyro_z) override;
-        int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
-                      int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
-        int Converter(float *mag_x, float *mag_y, float *mag_z);
-        int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+                      float *gyro_x, float *gyro_y, float *gyro_z) override;        
+        int Converter(float *mag_x, float *mag_y, float *mag_z) override;
         int ReadSensorBlocking() override;
         int ReadSensorNonBlocking() override;
     public:
@@ -327,6 +326,27 @@ struct config_t {
          */
         virtual int SoftReset() = 0;
 
+        /**
+         * @brief   转换！！！缓存！！!中加速度和陀螺仪的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} acc_x  : 可以等于NULL
+         * @param  {int16_t*} acc_y  : 可以等于NULL
+         * @param  {int16_t*} acc_z  : 可以等于NULL
+         * @param  {int16_t*} gyro_x : 可以等于NULL
+         * @param  {int16_t*} gyro_y : 可以等于NULL
+         * @param  {int16_t*} gyro_z : 可以等于NULL
+         * @return {int}             : 错误码
+         */
+        virtual int Converter(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z,
+                              int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) ;
+        /**
+         * @brief   转换！！！缓存！！!中磁力计的数据到指定的地方，单位为LSB
+         * @param  {int16_t*} mag_x : 可以等于NULL
+         * @param  {int16_t*} mag_y : 可以等于NULL
+         * @param  {int16_t*} mag_z : 可以等于NULL
+         * @return {int}            : 错误码
+         */
+        virtual int Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z);
+        
         /**
          * @brief   转换缓冲中的温度到其他地方，单位为摄氏度
          * @param  {float*} temp :可以等于NULL
@@ -665,7 +685,18 @@ inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write,
 
 
 
-## 7. 更新记录
+## 7. 预处理器定义
+
+定义以下宏以获得相关功能
+
+```C
+#define INV_IMU_DEBUG //此宏切换debug总开关，默认关闭
+#define INV_PRINTF printf //定义printf函数
+#define INV_YES_TRACE //打开代码追踪输出，默认关闭
+#define INV_NO_DEBUG  //关闭代码调试输出，默认打开
+```
+
+## 8. 更新记录
 
 - 2020-10-16 v1.0
 

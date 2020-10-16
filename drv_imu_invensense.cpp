@@ -1,6 +1,10 @@
-﻿//
-// Created by 17616 on 2020/10/14.
-//
+﻿/**
+ * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
+ * @author xiao qq1761690868
+ * @doc drv_imu_invensense.md
+ * @version v1.0
+ * @date 2020-10-16
+ */
 #include <cstring>
 #include <cmath>
 #include"drv_imu_invensense.hpp"
@@ -102,6 +106,11 @@ int inv::mpu6500Series_t::SelfTest() {
             if (st_shift_ratio[i] > DEF_ACCEL_ST_SHIFT_DELTA) {
                 //加速度计自检未通过
                 accel_result = 1;
+                INV_DEBUG("accel[%d] st fail,result = %d,it demands less than %d", i, st_shift_ratio[i],
+                          DEF_ACCEL_ST_SHIFT_DELTA);
+            }else{
+                INV_TRACE("accel[%d] st result = %d,it demands less than %d", i, st_shift_ratio[i],
+                          DEF_ACCEL_ST_SHIFT_DELTA);
             }
         }
     } else {
@@ -112,6 +121,11 @@ int inv::mpu6500Series_t::SelfTest() {
                 || st_shift_cust[i] > DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000) {
                 //加速度计自检未通过
                 accel_result = 1;
+                INV_DEBUG("accel[%d] st fail,result = %d,it demands <%d && >%d", i, st_shift_cust[i] ,
+                          DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000,DEF_ACCEL_ST_AL_MIN * (32768 / 2000) * 1000);
+            }else{
+                INV_TRACE("accel[%d] st result = %d,it demands <%d && >%d", i, st_shift_cust[i] ,
+                          DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000,DEF_ACCEL_ST_AL_MIN * (32768 / 2000) * 1000);
             }
         }
     }
@@ -134,12 +148,22 @@ int inv::mpu6500Series_t::SelfTest() {
             if (st_shift_cust[i] < DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]) {
                 //陀螺仪自检没过
                 gyro_result = 1;
+                INV_DEBUG("gyro[%d] st fail,result = %d,it demands greater than %d", i, st_shift_cust[i],
+                          DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]);
+            }else{
+                INV_TRACE("gyro[%d] st result = %d,it demands greater than %d", i, st_shift_cust[i],
+                          DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]);
             }
         } else {
             /* Self Test Pass/Fail Criteria B */
             if (st_shift_cust[i] < DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION) {
                 //陀螺仪自检没过
                 gyro_result = 1;
+                INV_DEBUG("gyro[%d] st fail,result = %d,it demands greater than %d", i, st_shift_cust[i],
+                          DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION);
+            }else{
+                INV_TRACE("gyro[%d] st result = %d,it demands greater than %d", i, st_shift_cust[i],
+                          DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION);
             }
         }
     }
@@ -151,6 +175,11 @@ int inv::mpu6500Series_t::SelfTest() {
                 //陀螺仪自检没过
             {
                 gyro_result = 1;
+                INV_DEBUG("gyro[%d] st fail,result = %d,ift demands less than %d", i, (int) abs(gyro_bias_regular[i]),
+                          DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION);
+            }else{
+                INV_TRACE("gyro[%d] st result = %d,it demands less than %d", i, (int) abs(gyro_bias_regular[i]),
+                          DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION);
             }
         }
     }
@@ -330,6 +359,7 @@ namespace inv {
         //等待复位成功
         do {
             res |= ReadReg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+            INV_TRACE("0x%x at PWR_MGMT_1,wait it get 0x41", val);
         } while (val != 0x41);
 
         //唤起睡眠
@@ -472,7 +502,12 @@ namespace inv {
             int str = accel_bias_st[i] - accel_bias_regular[i];
             float Change_from_factory_trim = (float) (str - ft_a[i]) / ft_a[i];
             if (Change_from_factory_trim > 0.14 || Change_from_factory_trim < -0.14) {
+                INV_DEBUG("6050 accel[%d] self test fail,result = %f,it demands >-0.14 && <0.14", i,
+                          Change_from_factory_trim);
                 accel_result = 1;
+            } else {
+                INV_TRACE("6050 accel[%d] self test result = %f,it demands >-0.14 && <0.14", i,
+                          Change_from_factory_trim);
             }
         }
 
@@ -480,7 +515,12 @@ namespace inv {
             int str = gyro_bias_st[i] - gyro_bias_regular[i];
             float Change_from_factory_trim = (float) (str - ft_g[i]) / ft_g[i];
             if (Change_from_factory_trim > 0.14 || Change_from_factory_trim < -0.14) {
+                INV_DEBUG("6050 gryo[%d] self test fail,result = %f,it demands >-0.14 && <0.14", i,
+                          Change_from_factory_trim);
                 gyro_result = 1;
+            } else {
+                INV_TRACE("6050 gryo[%d] self test result = %f,it demands >-0.14 && <0.14", i,
+                          Change_from_factory_trim);
             }
         }
 
@@ -516,6 +556,7 @@ namespace inv {
         //等待复位成功
         do {
             res |= ReadReg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+            INV_TRACE("0x%x at PWR_MGMT_1,wait it get 0x40", val);
         } while (val != 0x40);
 
         //唤起睡眠
@@ -551,6 +592,7 @@ namespace inv {
         //AK8963 get calibration data
         uint8_t response[3] = {0, 0, 0};
         res |= SubI2cRead(MPU9250_AK8963_I2C_ADDR, (uint8_t) ak8963_RegMap::ASAX, response, 3);
+        INV_TRACE("0x%x 0x%x 0x%x at ak8963_RegMap::ASAX", response[0], response[1], response[2]);
         //AK8963_SENSITIVITY_SCALE_FACTOR
         //ak8963Asa[i++] = (s16)((data - 128.0f) / 256.0f + 1.0f) ;
         //ak8963Asa[i++] = (s16)((data - 128.0f) *0.00390625f + 1.0f) ;
@@ -558,6 +600,7 @@ namespace inv {
         ak8963Asa[1] = (1.0f + 0.00390625f * ((int16_t) (response[1]) - 128));
         ak8963Asa[2] = (1.0f + 0.00390625f * ((int16_t) (response[2]) - 128));
 
+        INV_TRACE("%f %f %f at ak8963Asa", ak8963Asa[0], ak8963Asa[1], ak8963Asa[2]);
         val = MPU9250_AK8963_POWER_DOWN;
         res |= SubI2cWrite(MPU9250_AK8963_I2C_ADDR, (uint8_t) ak8963_RegMap::CNTL, &val, 1);
 
@@ -624,6 +667,7 @@ namespace inv {
             res |= WriteReg((uint8_t) mpu9250_RegMap::I2C_SLV4_CTRL, tmp);
             do {
                 if (timeout++ > 5000) {
+                    INV_DEBUG("SubI2cRead time out");
                     return -2;
                 }
                 res |= ReadReg((uint8_t) mpu9250_RegMap::I2C_MST_STATUS, &status);
@@ -652,11 +696,13 @@ namespace inv {
             res |= WriteReg((uint8_t) mpu9250_RegMap::I2C_SLV4_CTRL, tmp);
             do {
                 if (timeout++ > 5000) {
+                    INV_DEBUG("SubI2cWrite time out");
                     return -2;
                 }
                 res |= ReadReg((uint8_t) mpu9250_RegMap::I2C_MST_STATUS, &status);
             } while ((status & MPU9250_I2C_SLV4_DONE) == 0);
             if (status & MPU9250_I2C_SLV4_NACK) {
+                INV_DEBUG("SubI2cWrite no ack");
                 return -3;
             }
             index++;
@@ -688,9 +734,11 @@ namespace inv {
 
     int mpu9250_t::Converter(float *mag_x, float *mag_y, float *mag_z) {
         if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
+            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
             return -1;
         }
         if (buf[14 + 7] & MPU9250_AK8963_OVERFLOW) {
+            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
             return -1;
         }
         if (mag_x) { *mag_x = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }
@@ -701,9 +749,11 @@ namespace inv {
 
     int mpu9250_t::Converter(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
         if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
+            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
             return -1;
         }
         if (buf[14 + 7] & MPU9250_AK8963_OVERFLOW) {
+            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
             return -1;
         }
         if (mag_x) { *mag_x = ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }
@@ -741,6 +791,7 @@ namespace inv {
         //等待复位成功
         do {
             res |= ReadReg((uint8_t) icm20602_RegMap::PWR_MGMT_1, &val);
+            INV_TRACE("0x%x at PWR_MGMT_1,wait it get 0x1", val);
         } while (val != 0x1);
 
         //唤起睡眠
@@ -751,15 +802,38 @@ namespace inv {
 
     int imuPtr_t::Load(i2cInterface_t &_i2c) {
         if (icm20602_t(_i2c).Detect()) {
+            INV_TRACE("icm20602 detected");
             reset(new icm20602_t(_i2c));
             return 0;
         } else if (mpu6050_t(_i2c).Detect()) {
+            INV_TRACE("mpu6050 detected");
             reset(new mpu6050_t(_i2c));
             return 0;
         } else if (mpu9250_t(_i2c).Detect()) {
+            INV_TRACE("mpu9250 detected");
             reset(new mpu9250_t(_i2c));
             return 0;
         }
         return -1;
+    }
+
+    int imu_t::WriteReg(uint8_t reg, const uint8_t val) {
+        int res = i2c.WriteBlocking(addr, reg, &val, 1);
+#ifdef INV_IMU_DEBUG
+        if (res != 0) {
+            INV_DEBUG("i2c write return code = %d", res);
+        }
+#endif
+        return res;
+    }
+
+    int imu_t::ReadReg(uint8_t reg, uint8_t *val) {
+        int res = i2c.ReadBlocking(addr, reg, val, 1);
+#ifdef INV_IMU_DEBUG
+        if (res != 0) {
+            INV_DEBUG("i2c read return code = %d", res);
+        }
+#endif
+        return res;
     }
 }
