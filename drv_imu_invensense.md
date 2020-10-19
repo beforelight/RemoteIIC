@@ -199,10 +199,10 @@ inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write,
 的形式
 
 ```C
-#define INV_IMU_DEBUG //此宏切换debug总开关，默认关闭
+#define HITSIC_INV_IMU_DEBUG //此宏切换debug总开关，默认关闭
 #define INV_PRINTF printf //定义printf函数
-#define INV_YES_TRACE //打开代码追踪输出，默认关闭
-#define INV_NO_DEBUG  //关闭代码调试输出，默认打开
+#define HITSIC_INV_YES_TRACE //打开代码追踪输出，默认关闭
+#define HITSIC_INV_NO_DEBUG  //关闭代码调试输出，默认打开
 ```
 
 ## 7. 更新记录

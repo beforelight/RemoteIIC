@@ -1,29 +1,13 @@
 #include <iostream>
-#include"remote_i2c.h"
-#include"drv_imu_invensense.hpp"
-/**
- * 
- * @param  {void*} context  : 用户参数
- * @param  {unsigned} char  : iic从机地址
- * @param  {unsigned} char  : 从机寄存器地址
- * @param  {unsigned*} char : 缓存地址
- * @param  {unsigned} int   : 数据长度
- * @return {int}            : 错误码
- */
+#include "remote_i2c.h"
+#include "drv_imu_invensense.hpp"
+
 int remote_i2c_read(void *context,
                     uint8_t addr, uint8_t reg,
                     uint8_t *val, unsigned int len) {
     return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
 }
-/**
- * 
- * @param  {void*} context        : 用户参数
- * @param  {unsigned} char        : iic从机地址
- * @param  {unsigned} char        : 从机寄存器地址
- * @param  {const unsigned*} char : 缓存地址
- * @param  {unsigned} int         : 数据长度
- * @return {int}                  : 错误码
- */
+
 int remote_i2c_write(void *context,
                      uint8_t addr, uint8_t reg,
                      const uint8_t *val, unsigned int len) {
@@ -32,7 +16,7 @@ int remote_i2c_write(void *context,
 
 remote_i2c iic("/dev/i2c-1");
 inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write,
-                           remote_i2c_read, remote_i2c_write);
+                           remote_i2c_read);
 inv::imuPtr_t my_imu;
 uint8_t val;
 
