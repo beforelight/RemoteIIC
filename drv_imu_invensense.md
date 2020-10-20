@@ -126,9 +126,9 @@ int example1(int argc, const char **argv) {
             if (my_imu->SelfTest() == 0) {
                 usleep(10000);//等待10ms
                 my_imu->ReadSensorBlocking();
-                my_imu->Converter(acc, acc + 1, acc + 2, gyro, gyro + 1, gyro + 2);
-//                static_cast<inv::mpuSeries_t*>(my_imu.get())->Converter(&temp);
-                my_imu->Converter(mag, mag + 1, mag + 2);
+                my_imu->Convert(acc, acc + 1, acc + 2, gyro, gyro + 1, gyro + 2);
+//                static_cast<inv::mpuSeries_t*>(my_imu.get())->Convert(&temp);
+                my_imu->Convert(mag, mag + 1, mag + 2);
                 printf("%s\r\n", my_imu->Report().c_str());
                 printf("accel \t%.3f \t%.3f \t%.3f m/s^2\r\n", acc[0], acc[1], acc[2]);
                 printf("gyro \t%.3f \t%.3f \t%.3f dps \r\n", gyro[0], gyro[1], gyro[2]);
@@ -154,9 +154,9 @@ int example2(int argc, const char **argv) {
             if (my_imu.SelfTest() == 0) {
                 usleep(10000);//等待10ms
                 my_imu.ReadSensorBlocking();
-                my_imu.Converter(acc, acc + 1, acc + 2, gyro, gyro + 1, gyro + 2);
-                my_imu.Converter(&temp);
-                my_imu.Converter(mag, mag + 1, mag + 2);
+                my_imu.Convert(acc, acc + 1, acc + 2, gyro, gyro + 1, gyro + 2);
+                my_imu.Convert(&temp);
+                my_imu.Convert(mag, mag + 1, mag + 2);
                 printf("%s\r\n", my_imu.Report().c_str());
                 printf("accel \t%.3f \t%.3f \t%.3f m/s^2\r\n", acc[0], acc[1], acc[2]);
                 printf("gyro \t%.3f \t%.3f \t%.3f dps \r\n", gyro[0], gyro[1], gyro[2]);
