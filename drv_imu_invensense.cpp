@@ -2,7 +2,7 @@
  * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
  * @author xiao qq1761690868
  * @doc drv_imu_invensense.md
- * @version v1.0
+ * @version v1.1
  * @date 2020-10-16
  */
 #include <cstring>
@@ -88,7 +88,7 @@ int inv::mpu6500Series_t::SelfTest() {
     int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-    res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), RegSelfTestXAccel(), regs, 3);
+    res |= i2c.read(GetI2cAddr(), RegSelfTestXAccel(), regs, 3);
     for (i = 0; i < 3; i++) {
         if (regs[i] != 0) {
             st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -131,7 +131,7 @@ int inv::mpu6500Series_t::SelfTest() {
     }
 
     //计算陀螺仪自检结果
-    res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), RegSelfTestXGyro(), regs, 3);
+    res |= i2c.read(GetI2cAddr(), RegSelfTestXGyro(), regs, 3);
     for (i = 0; i < 3; i++) {
         if (regs[i] != 0) {
             st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -341,13 +341,11 @@ namespace inv {
     }
 
     int mpuSeries_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+        return i2c.read(GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int mpuSeries_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(),
-                                      (uint8_t) icm20602_RegMap::ACCEL_XOUT_H,
-                                      buf, 14);
+        return i2c.readNonBlocking(GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int icm20602_t::SoftReset(void) {
@@ -472,7 +470,7 @@ namespace inv {
 
         //开始计算自检结果
         uint8_t regs[4];
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
+        res |= i2c.read(GetI2cAddr(), (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
         int a_st[3];
         int g_st[3];
         int ft_a[3];
@@ -768,13 +766,11 @@ namespace inv {
     }
 
     int mpu9250_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+        return i2c.read(GetI2cAddr(), (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
     }
 
     int mpu9250_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(),
-                                      (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H,
-                                      buf, 22);
+        return i2c.readNonBlocking(GetI2cAddr(), (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
     }
 
     mpu9250_t::mpu9250_t(i2cInterface_t &_i2c) : mpu6500Series_t(_i2c), ak8963DeviceId(0), ak8963Information(0) {
@@ -818,7 +814,7 @@ namespace inv {
     }
 
     int imu_t::WriteReg(uint8_t reg, const uint8_t val) {
-        int res = (*i2c.writeBlocking)(i2c.context, addr, reg, &val, 1);
+        int res = i2c.write(addr, reg, &val, 1);
 #if (defined(HITSIC_INV_IMU_DEBUG) && (HITSIC_INV_IMU_DEBUG > 0))
         if (res != 0) {
             INV_DEBUG("i2c write return code = %d", res);
@@ -828,7 +824,7 @@ namespace inv {
     }
 
     int imu_t::ReadReg(uint8_t reg, uint8_t *val) {
-        int res = (*i2c.readBlocking)(i2c.context, addr, reg, val, 1);
+        int res = i2c.read(addr, reg, val, 1);
 #if (defined(HITSIC_INV_IMU_DEBUG) && (HITSIC_INV_IMU_DEBUG > 0))
         if (res != 0) {
             INV_DEBUG("i2c read return code = %d", res);

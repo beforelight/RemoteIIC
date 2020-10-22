@@ -2,7 +2,7 @@
  * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
  * @author xiao qq1761690868
  * @doc drv_imu_invensense.md
- * @version v1.0
+ * @version v1.1
  * @date 2020-10-16
  */
 
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <functional>
 #include "drv_imu_invensense_def.hpp"
 #include "drv_imu_invensense_port.hpp"
 
@@ -76,46 +77,61 @@ namespace inv {
     //i2c接口
     class i2cInterface_t {
     public:
-        /**
-         * @param  _context          :调用函数指针传入的用户参数
-         * @param  _readBlocking     :约定如下，阻塞读
-         *  **************************************************
-         *  * @brief   这里的函数指针的参数约定
-         *  * @param  {void*}                : 用户参数
-         *  * @param  {uint8_t}        : iic从机地址
-         *  * @param  {uint8_t}        : 从机寄存器地址
-         *  * @param  {const unsigned* char} : 缓存地址
-         *  * @param  {unsigned int}         : 数据长度
-         *  * @return {int}                  : 错误码
-         *  **************************************************
-         * @param  _writeBlocking    :约定同上，阻塞写
-         * @param  _readNonBlocking  :约定同上，非阻塞读
+        /**************************************************
+         * @brief   IIC读写接口（函数）定义
+         * @param  {unsigned int}          : iic从机地址
+         * @param  {unsigned int}          : 从机寄存器地址
+         * @param  {/const/ unsigned char*}: 缓存地址
+         * @param  {unsigned int}          : 数据长度
+         * @return {int}                   : 错误码
          */
-        i2cInterface_t(void *_context,
-                       int (*_readBlocking)(void *context,
-                                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len),
-                       int (*_writeBlocking)(void *context,
-                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len),
-                       int (*_readNonBlocking)(void *context,
-                                               uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len))
-                : context(_context), readBlocking(_readBlocking), writeBlocking(_writeBlocking),
-                  readNonBlocking(_readNonBlocking) {}
+        i2cInterface_t(std::function<int(unsigned int, unsigned int, unsigned char *, unsigned int)> _read,
+                       std::function<int(unsigned int, unsigned int, const unsigned char *, unsigned int)> _write,
+                       std::function<int(unsigned int, unsigned int, unsigned char *, unsigned int)> _readNonBlocking)
+                : read(_read), write(_write), readNonBlocking(_readNonBlocking) {}
 
-        i2cInterface_t(void *_context,
-                       int (*_readBlocking)(void *context,
-                                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len),
-                       int (*_writeBlocking)(void *context,
-                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len)):
-                i2cInterface_t(_context,_readBlocking,_writeBlocking,_readBlocking){}
+        /**************************************************
+         * @brief   IIC读写接口（函数）定义
+         * @param  {unsigned int}          : iic从机地址
+         * @param  {unsigned int}          : 从机寄存器地址
+         * @param  {/const/ unsigned char*}: 缓存地址
+         * @param  {unsigned int}          : 数据长度
+         * @return {int}                   : 错误码
+         */
+        i2cInterface_t(std::function<int(unsigned int, unsigned int, unsigned char *, unsigned int)> _read,
+                       std::function<int(unsigned int, unsigned int, const unsigned char *, unsigned int)> _write)
+                : read(_read), write(_write), readNonBlocking(_read) {}
 
+    public:
+        /**************************************************
+         * @brief   IIC读写接口（函数）定义
+         * @param  {unsigned int}          : iic从机地址
+         * @param  {unsigned int}          : 从机寄存器地址
+         * @param  {/const/ unsigned char*}: 缓存地址
+         * @param  {unsigned int}          : 数据长度
+         * @return {int}                   : 错误码
+         */
+        std::function<int(unsigned int, unsigned int, unsigned char *, unsigned int)> read;
 
-        void *context;
-        int (*readBlocking)(void *context,
-                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len);
-        int (*writeBlocking)(void *context,
-                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len);
-        int (*readNonBlocking)(void *context,
-                               uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len);
+        /**************************************************
+         * @brief   IIC读写接口（函数）定义
+         * @param  {unsigned int}          : iic从机地址
+         * @param  {unsigned int}          : 从机寄存器地址
+         * @param  {/const/ unsigned char*}: 缓存地址
+         * @param  {unsigned int}          : 数据长度
+         * @return {int}                   : 错误码
+         */
+        std::function<int(unsigned int, unsigned int, const unsigned char *, unsigned int)> write;
+
+        /**************************************************
+         * @brief   IIC读写接口（函数）定义
+         * @param  {unsigned int}          : iic从机地址
+         * @param  {unsigned int}          : 从机寄存器地址
+         * @param  {/const/ unsigned char*}: 缓存地址
+         * @param  {unsigned int}          : 数据长度
+         * @return {int}                   : 错误码
+         */
+        std::function<int(unsigned int, unsigned int, unsigned char *, unsigned int)> readNonBlocking;
     };
 
     struct config_t {

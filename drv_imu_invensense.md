@@ -96,16 +96,16 @@ class imuPtr_t : public std::shared_ptr<imu_t>;//imu_t的智能指针类，用�
 #include "remote_i2c.h"
 #include "drv_imu_invensense.hpp"
 
-int remote_i2c_read(void *context,
+int remote_i2c_read(void *instance,
                     uint8_t addr, uint8_t reg,
                     uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
+    return static_cast<remote_i2c *>(instance)->Read(addr, reg, val, len);
 }
 
-int remote_i2c_write(void *context,
+int remote_i2c_write(void *instance,
                      uint8_t addr, uint8_t reg,
                      const uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
+    return static_cast<remote_i2c *>(instance)->Write(addr, reg, val, len);
 }
 
 remote_i2c iic("/dev/i2c-1");
@@ -287,31 +287,31 @@ int main(int argc, const char **argv){
 ```c++
 /**
  * 
- * @param  {void* context}  : 用户参数
+ * @param  {void* instance}  : 用户参数
  * @param  {unsigned char}  : iic从机地址
  * @param  {unsigned char}  : 从机寄存器地址
  * @param  {unsigned char*} : 缓存地址
  * @param  {unsigned int}   : 数据长度
  * @return {int}            : 错误码
  */
-int remote_i2c_read(void *context,
+int remote_i2c_read(void *instance,
                     uint8_t addr, uint8_t reg,
                     uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
+    return static_cast<remote_i2c *>(instance)->Read(addr, reg, val, len);
 }
 /**
  * 
- * @param  {void* context}        : 用户参数
+ * @param  {void* instance}        : 用户参数
  * @param  {unsigned char}        : iic从机地址
  * @param  {unsigned char }       : 从机寄存器地址
  * @param  {const unsigned char*} : 缓存地址
  * @param  {unsigned int }        : 数据长度
  * @return {int}                  : 错误码
  */
-int remote_i2c_write(void *context,
+int remote_i2c_write(void *instance,
                      uint8_t addr, uint8_t reg,
                      const uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
+    return static_cast<remote_i2c *>(instance)->Write(addr, reg, val, len);
 }
 ```
 

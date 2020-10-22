@@ -2,26 +2,20 @@
 #include "remote_i2c.h"
 #include "drv_imu_invensense.hpp"
 
-int remote_i2c_read(void *context,
-                    uint8_t addr, uint8_t reg,
-                    uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
-}
-
-int remote_i2c_write(void *context,
-                     uint8_t addr, uint8_t reg,
-                     const uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
-}
-
 remote_i2c iic("/dev/i2c-1");
-inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write);
+
+inv::i2cInterface_t my_i2c(
+        [](unsigned int addr, unsigned int reg, unsigned char *buf, unsigned int len) -> int {
+            return iic.Read(addr, reg, buf, len);
+        },
+        [](unsigned int addr, unsigned int reg, const unsigned char *buf, unsigned int len) -> int {
+            return iic.Write(addr, reg, buf, len);
+        });
 
 float acc[3] = {0, 0, 0};
 float gyro[3] = {0, 0, 0};
 float mag[3] = {0, 0, 0};
 float temp = 0;
-
 
 
 int example1(int argc, const char **argv) {
@@ -81,12 +75,11 @@ int example2(int argc, const char **argv) {
 }
 
 
-
-int main(int argc, const char **argv){
+int main(int argc, const char **argv) {
     printf("\r\n*****************example1*****************\r\n");
-    example1(argc,argv);
+    example1(argc, argv);
     printf("\t\n*****************example2*****************\r\n");
-    example2(argc,argv);
+    example2(argc, argv);
     printf("Hello\r\n");
 
     return 0;
