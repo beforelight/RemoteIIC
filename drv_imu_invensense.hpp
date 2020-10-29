@@ -288,22 +288,13 @@ namespace inv {
 
         i2cInterface_t &i2c;
 
-        int WriteReg(uint8_t reg, const uint8_t val);;
+        int WriteReg(uint8_t reg, const uint8_t val);
 
-        int ReadReg(uint8_t reg, uint8_t *val);;
+        int WriteRegVerified(uint8_t reg, const uint8_t val);
 
-        int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask) {
-            uint8_t regVal;
-            int res = 0;
-            res |= ReadReg(reg, &regVal);
-            res |= WriteReg(reg, (regVal & (~mask)) | (val & mask));
-            res |= ReadReg(reg, &regVal);
-            if ((regVal & mask) != (val & mask)) {
-                INV_DEBUG("i2c rw error");
-                res |= -1;
-            }
-            return res;
-        }
+        int ReadReg(uint8_t reg, uint8_t *val);
+
+        int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask);
 
     private:
         uint8_t addr;
