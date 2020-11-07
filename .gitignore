@@ -108,7 +108,8 @@ dkms.conf
 # IntelliJ project files
 .idea
 *.iml
-out
-gen
+/out
+/gen
 /cmake-build-debug
 /.vs
+/ahrs
