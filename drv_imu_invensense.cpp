@@ -743,11 +743,11 @@ namespace inv {
 
     int mpu9250_t::Convert(float *mag_x, float *mag_y, float *mag_z) {
         if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
-            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
+//            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
             return -1;
         }
         if (buf[14 + 7] & MPU9250_AK8963_OVERFLOW) {
-            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
+//            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
             return -1;
         }
         if (mag_x) { *mag_x = magUnit * ak8963Asa[0] * ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }
