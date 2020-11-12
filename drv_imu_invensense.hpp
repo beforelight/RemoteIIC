@@ -10,6 +10,7 @@
 #define UTILITIES_DRV_IMU_INVENSENSE_HPP
 
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <memory>
 #include <functional>
@@ -146,6 +147,77 @@ namespace inv {
         i2cif_t(std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _read,
                 std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> _write)
                 : i2cif_t(_read, _write, _read) {}
+    };
+    class spiif_t : public i2cInterface_t {
+    private:
+//        void *realloc(void *mem_address, unsigned int newsize);
+        uint8_t *txbuff;
+        uint8_t *rxbuff;
+        int *shareCounter;
+        int buffsize;
+        std::function<int(const uint8_t *, uint8_t *, unsigned int)> transfer;
+        static int ReadBlocking(void *context,
+                                uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
+            spiif_t *spi = static_cast<spiif_t *>(context);
+            if (len + 1 > spi->buffsize) {
+                if ((*spi->shareCounter) == 0) {
+                    free(spi->txbuff);
+                    free(spi->rxbuff);
+                } else {
+                    (*spi->shareCounter)--;
+                }
+                spi->txbuff = (uint8_t *) malloc(len + 30);
+                spi->rxbuff = (uint8_t *) malloc(len + 30);
+                spi->buffsize = len + 30;
+            }
+            spi->txbuff[0] = (1 << 8) | (reg & 0x7f);
+            int rtv = spi->transfer(spi->txbuff, spi->rxbuff, len + 1);
+            memcpy(val, &spi->rxbuff[1], len);
+            return rtv;
+        }
+        static int WriteBlocking(void *context,
+                                 uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len) {
+            spiif_t *spi = static_cast<spiif_t *>(context);
+            if (len + 1 > spi->buffsize) {
+                if ((*spi->shareCounter) == 0) {
+                    free(spi->txbuff);
+                    free(spi->rxbuff);
+                } else {
+                    (*spi->shareCounter)--;
+                }
+                spi->txbuff = (uint8_t *) malloc(len + 30);
+                spi->rxbuff = (uint8_t *) malloc(len + 30);
+                spi->buffsize = len + 30;
+            }
+            spi->txbuff[0] = (reg & 0x7f);
+            memcpy(&spi->txbuff[1], val, len);
+            int rtv = spi->transfer(spi->txbuff, spi->rxbuff, len + 1);
+            return rtv;
+        }
+    public:
+        spiif_t(std::function<int(const uint8_t *, uint8_t *, unsigned int)> transfer_)
+                : transfer(transfer_), shareCounter(new int(0)), i2cInterface_t(this, ReadBlocking, WriteBlocking) {
+            txbuff = (uint8_t *) malloc(30);
+            rxbuff = (uint8_t *) malloc(30);
+            buffsize = 30;
+        }
+        spiif_t(const spiif_t &r) : i2cInterface_t(this, ReadBlocking, WriteBlocking) {
+            rxbuff = r.rxbuff;
+            txbuff = r.txbuff;
+            shareCounter = r.shareCounter;
+            buffsize = r.buffsize;
+            transfer = r.transfer;
+            (*shareCounter)++;
+        };
+        ~spiif_t() {
+            if (*shareCounter == 0) {
+                free(txbuff);
+                free(rxbuff);
+                delete shareCounter;
+            } else {
+                (*shareCounter)--;
+            }
+        }
     };
 #endif
     struct config_t {
