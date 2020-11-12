@@ -8,13 +8,19 @@ remote_i2c iic("/dev/i2c-1");
 using namespace std;
 using namespace ahrs;
 
-inv::i2cInterface_t my_i2c(
-        [](unsigned int addr, unsigned int reg, unsigned char *buf, unsigned int len) -> int {
-            return iic.Read(addr, reg, buf, len);
-        },
-        [](unsigned int addr, unsigned int reg, const unsigned char *buf, unsigned int len) -> int {
-            return iic.Write(addr, reg, buf, len);
-        });
+int remote_i2c_read(void *context,
+                    uint8_t addr, uint8_t reg,
+                    uint8_t *val, unsigned int len) {
+    return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
+}
+
+int remote_i2c_write(void *context,
+                     uint8_t addr, uint8_t reg,
+                     const uint8_t *val, unsigned int len) {
+    return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
+}
+
+inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write);
 
 float acc[3] = {0, 0, 0};
 float gyro[3] = {0, 0, 0};
