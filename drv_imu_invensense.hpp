@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <functional>
 #include "drv_imu_invensense_def.hpp"
 #include "drv_imu_invensense_port.hpp"
 
@@ -105,8 +106,8 @@ namespace inv {
                        int (*_readBlocking)(void *context,
                                             uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len),
                        int (*_writeBlocking)(void *context,
-                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len)):
-                i2cInterface_t(_context,_readBlocking,_writeBlocking,_readBlocking){}
+                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len)) :
+                i2cInterface_t(_context, _readBlocking, _writeBlocking, _readBlocking) {}
 
 
         void *context;
@@ -118,6 +119,35 @@ namespace inv {
                                uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len);
     };
 
+#if (__cplusplus > 201103L)
+    class i2cif_t : public i2cInterface_t {
+    private:
+        std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> read;
+        std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> readNB;
+        std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> write;
+        static int ReadBlocking(void *context,
+                                uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
+            return static_cast<i2cif_t *>(context)->read(addr, reg, val, len);
+        }
+        static int WriteBlocking(void *context,
+                                 uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len) {
+            return static_cast<i2cif_t *>(context)->write(addr, reg, val, len);
+        }
+        static int ReadNonBlocking(void *context,
+                                   uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
+            return static_cast<i2cif_t *>(context)->readNB(addr, reg, val, len);
+        }
+    public:
+        i2cif_t(std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _read,
+                std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> _write,
+                std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _readNonBlocking) :
+                read(_read), readNB(_readNonBlocking), write(_write),
+                i2cInterface_t(this, ReadBlocking, WriteBlocking, ReadNonBlocking) {}
+        i2cif_t(std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _read,
+                std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> _write)
+                : i2cif_t(_read, _write, _read) {}
+    };
+#endif
     struct config_t {
         enum mpu_accel_fs {    // In the ACCEL_CONFIG (0x1C) register, the full scale select  bits are :
             MPU_FS_2G = 0,    // 00 = 2G
