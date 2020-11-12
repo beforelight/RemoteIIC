@@ -28,6 +28,6 @@ project(RemoteIIC)
 
 add_executable(RemoteIIC main.cpp remote_i2c.cpp remote_i2c.h smbus.cpp smbus.h
         drv_imu_invensense.hpp drv_imu_invensense.cpp drv_imu_invensense_def.hpp drv_imu_invensense_port.hpp
-        ahrs/ahrs.cpp ahrs/ahrsEigen.cpp
-        ahrs/ahrs.h ahrs/ahrsEigen.h
+        ahrs/ahrs.cpp
+        ahrs/ahrs.h
         )
