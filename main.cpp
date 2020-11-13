@@ -100,7 +100,7 @@ int example3(int argc, const char **argv) {
                 us_n = usGet();
                 int times = 100;
                 while (times--) {
-                    while (!static_cast<inv::mpuSeries_t *>(my_imu.get())->DataReady()) {
+                    while (!my_imu->DataReady()) {
 //                        my_imu->ReadSensorBlocking();
                     }
                 }
@@ -110,7 +110,7 @@ int example3(int argc, const char **argv) {
                 us_n = usGet();
                 times = 100;
                 while (times--) {
-                    while (!static_cast<inv::mpuSeries_t *>(my_imu.get())->DataReady()) {
+                    while (!!my_imu->DataReady()) {
                         my_imu->ReadSensorBlocking();
                     }
                 }

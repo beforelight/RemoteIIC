@@ -432,7 +432,7 @@ namespace inv {
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
-            imu_t::Convert(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            Convert(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_regular[i] += gbuf[i];
                 accel_bias_regular[i] += abuf[i];
@@ -449,7 +449,7 @@ namespace inv {
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
-            imu_t::Convert(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
+            Convert(abuf, abuf + 1, abuf + 2, gbuf, gbuf + 1, gbuf + 2);
             for (int i = 0; i < 3; ++i) {
                 gyro_bias_st[i] += gbuf[i];
                 accel_bias_st[i] += abuf[i];

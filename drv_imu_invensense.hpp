@@ -330,7 +330,7 @@ namespace inv {
     class mpu6050_t : public imu_t {
     public:
         ~mpu6050_t() {}
-        mpu6050_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(i2c, _addr) {}
+        mpu6050_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -356,7 +356,7 @@ namespace inv {
     class icm20602_t : public imu_t {
     public:
         virtual ~icm20602_t() {}
-        icm20602_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(i2c, _addr) {}
+        icm20602_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -391,7 +391,7 @@ namespace inv {
     public:
         virtual ~mpu9250_t() {}
 
-        mpu9250_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(i2c, _addr) {}
+        mpu9250_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
