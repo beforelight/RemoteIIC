@@ -378,6 +378,15 @@ namespace inv {
         uint8_t buf[14];
     };
 
+    class icm20600_t : public icm20602_t{
+    public:
+    public:
+        virtual ~icm20600_t() {}
+        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : icm20602_t(i2c, _addr) {}
+        bool Detect() override;
+        std::string Report() override;
+    };
+
     class mpu9250_t : public imu_t {
     public:
         virtual ~mpu9250_t() {}

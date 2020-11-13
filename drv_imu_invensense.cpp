@@ -1317,4 +1317,27 @@ namespace inv {
         }
         return res;
     }
+    bool icm20600_t::Detect() {
+        uint8_t val = 0;
+        SetI2cAddr(0x68);
+        ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
+        if (0x11 == val) {
+            return true;
+        }
+        val = 0;
+        SetI2cAddr(0x69);
+        ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
+        if (0x11 == val) {
+            return true;
+        }
+        return false;
+    }
+    std::string icm20600_t::Report() {
+        std::string rtv;
+        rtv += "model:icm20600\t";
+        rtv += "addr:";
+        rtv += std::to_string((int) GetI2cAddr());
+        rtv += '\t';
+        return rtv;
+    }
 }
