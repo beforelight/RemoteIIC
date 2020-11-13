@@ -294,6 +294,23 @@ namespace inv {
         ASAZ = 0x12,
     };
 
+    enum class ak09916_RegMap : uint8_t {
+        //Magnetometer register maps
+        WIA2 = 0x01,
+        ST1 = 0x10,
+        XOUT_L = 0x11,
+        XOUT_H = 0x12,
+        YOUT_L = 0x13,
+        YOUT_H = 0x14,
+        ZOUT_L = 0x15,
+        ZOUT_H = 0x16,
+        ST2 = 0x18,
+        CNTL2 = 0x31,
+        CNTL3 = 0x32,
+        TS1 = 0x33, //DO NOT ACCESS
+        TS2 = 0x34, //DO NOT ACCESS
+    };
+
     enum class icm20948_RegMap:uint16_t{
         WHO_AM_I                    =0x0       ,//0      R
         USER_CTRL                   =0x3       ,//3      R/W
@@ -492,6 +509,7 @@ namespace inv {
     constexpr static const int MPU9250_I2C_SLV4_DONE = 0x40;
     constexpr static const int MPU9250_I2C_SLV4_NACK = 0x10;
     constexpr static const int MPU9250_AK8963_I2C_ADDR = 0x0C;
+    constexpr static const int ICM20948_AK09916_I2C_ADDR = 0x0C;
     constexpr static const int MPU9250_AK8963_POWER_DOWN = 0x10;
     constexpr static const int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
     constexpr static const int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;

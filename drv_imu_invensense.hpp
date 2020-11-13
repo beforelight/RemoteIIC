@@ -299,14 +299,14 @@ namespace inv {
         constexpr const config_t &GetConfig() { return cfg; }
         void SetI2cAddr(uint8_t _addr) { if (addrAutoDetect == 0) { addr = _addr; }}
         constexpr const uint8_t &GetI2cAddr() { return addr; }
-    protected:
-        void SetIsOpen() { isOpen = true; }
-        void ClearIsOpen() { isOpen = false; }
-        i2cInterface_t &i2c;
         int WriteReg(uint8_t reg, const uint8_t val);
         int WriteRegVerified(uint8_t reg, const uint8_t val);
         int ReadReg(uint8_t reg, uint8_t *val);
         int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask);
+    protected:
+        void SetIsOpen() { isOpen = true; }
+        void ClearIsOpen() { isOpen = false; }
+        i2cInterface_t &i2c;
     private:
         int addrAutoDetect;
         uint8_t addr;
@@ -411,5 +411,43 @@ namespace inv {
     public:
         int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::AddrAutoDetect);
     };
+
+    class icm20948_t : public imu_t{
+    public:
+        ~icm20948_t(){}
+        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr),bank(0){}
+
+        int Init(config_t _cfg = config_t()) override;
+        bool Detect() override;
+        int SelfTest() override;
+        std::string Report() override;
+        bool DataReady() override;
+        int EnableDataReadyInt() override;
+        int SoftReset() override;
+        int ReadSensorBlocking() override;
+        int ReadSensorNonBlocking() override;
+        int Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) override;
+        int Convert(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
+        int Convert(float *mag_x, float *mag_y, float *mag_z) override;
+        int Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+        int Convert(float *temp) override;
+    public:
+        int SubI2cRead(uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len = 1);
+        int SubI2cWrite(uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len = 1);
+        int WriteReg(uint16_t reg, const uint8_t val);
+        int WriteRegVerified(uint16_t reg, const uint8_t val);
+        int ReadReg(uint16_t reg, uint8_t *val);
+        int ModifyReg(uint16_t reg, const uint8_t val, const uint8_t mask);
+    private:
+        int SwitchBank(int _bank);
+    private:
+        int bank;
+        float gyroUnit;
+        float accelUnit;
+        uint8_t ak09916DeviceId;
+        uint8_t buf[14+9];
+        constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
+    };
+
 }
 #endif //UTILITIES_DRV_IMU_INVENSENSE_HPP
