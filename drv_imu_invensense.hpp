@@ -59,20 +59,7 @@
 
 
 namespace inv {
-//    class i2cInterface_t;//i2c接口
-//    struct config_t;//设置量程和数字低通滤波器
-//
-//    class imu_t;//imu接口类，抽象出初始化/数据转换/SelfTest/Detect/IO的欸皮埃
-//
-//    class mpuSeries_t;//基类，抽象出invensense的mpu系列以及部分icm系列imu的软复位/中断/温度转换/WhoAmI的api，实现初始化/数据转换/Detect/IO的方法
-//    class mpu6050_t;//mpu6050驱动
-//
-//    class mpu6500Series_t;//基类，实现mpu6500系列以及部分icm系列imu的自检方法
-//
-//    class icm20602_t;//icm20602驱动
-//    class mpu9250_t;//mpu9250驱动
-//
-//    class imuPtr_t;//imu的智能指针类，用于实例化imu对象
+
 
     //i2c接口
     class i2cInterface_t {

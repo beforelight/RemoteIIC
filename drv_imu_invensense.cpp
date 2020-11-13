@@ -89,45 +89,67 @@ namespace inv {
                 break;
         }
 
-        //配置陀螺仪量程
+        //配置陀螺仪量程和单位
+        switch (GetConfig().gyroUnit) {
+            case config_t::MPU_UNIT_RadPerSec:
+                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                break;
+            case config_t::MPU_UNIT_RevolutionsPerMinute:
+                gyroUnit = (250.0 / 32768) * (60 / 360);
+                break;
+            case config_t::MPU_UNIT_DegPerSec:
+            default:
+                gyroUnit = 250.0 / 32768;
+                break;
+        }
         switch (GetConfig().gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::GYRO_CONFIG, 0 << 3);
-                gyroUnit = 250.0 / 32768;
                 break;
             case config_t::MPU_FS_500dps:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit = 500.0 / 32768;
+                gyroUnit *= 2;
                 break;
             case config_t::MPU_FS_1000dps:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit = 1000.0 / 32768;
+                gyroUnit *= 4;
                 break;
             case config_t::MPU_FS_2000dps:
             default:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit = 2000.0 / 32768;
+                gyroUnit *= 8;
                 break;
         }
 
-        //配置加速度计量程
+        //配置加速度计量程和单位
+        switch (GetConfig().accelUnit) {
+            case config_t::MPU_UNIT_G:
+                accelUnit = (2.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_mG:
+                accelUnit = (2000.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_MetersPerSquareSecond:
+            default:
+                accelUnit = 2.0 * 9.8 / 32768;
+                break;
+        }
         switch (GetConfig().accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG, 0 << 3);
-                accelUnit = 2.0 * 9.8 / 32768;
                 break;
             case config_t::MPU_FS_4G:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit = 4.0 * 9.8 / 32768;
+                accelUnit *= 2;
                 break;
             case config_t::MPU_FS_8G:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit = 8.0 * 9.8 / 32768;
+                accelUnit *= 4;
                 break;
             case config_t::MPU_FS_16G:
             default:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit = 16.0 * 9.8 / 32768;
+                accelUnit *= 8;
                 break;
         }
 
@@ -603,45 +625,67 @@ namespace inv {
                 break;
         }
 
-        //配置陀螺仪量程
+        //配置陀螺仪量程和单位
+        switch (GetConfig().gyroUnit) {
+            case config_t::MPU_UNIT_RadPerSec:
+                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                break;
+            case config_t::MPU_UNIT_RevolutionsPerMinute:
+                gyroUnit = (250.0 / 32768) * (60 / 360);
+                break;
+            case config_t::MPU_UNIT_DegPerSec:
+            default:
+                gyroUnit = 250.0 / 32768;
+                break;
+        }
         switch (GetConfig().gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::GYRO_CONFIG, 0 << 3);
-                gyroUnit = 250.0 / 32768;
                 break;
             case config_t::MPU_FS_500dps:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit = 500.0 / 32768;
+                gyroUnit *= 2;
                 break;
             case config_t::MPU_FS_1000dps:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit = 1000.0 / 32768;
+                gyroUnit *= 4;
                 break;
             case config_t::MPU_FS_2000dps:
             default:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit = 2000.0 / 32768;
+                gyroUnit *= 8;
                 break;
         }
 
-        //配置加速度计量程
+        //配置加速度计量程和单位
+        switch (GetConfig().accelUnit) {
+            case config_t::MPU_UNIT_G:
+                accelUnit = (2.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_mG:
+                accelUnit = (2000.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_MetersPerSquareSecond:
+            default:
+                accelUnit = 2.0 * 9.8 / 32768;
+                break;
+        }
         switch (GetConfig().accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, 0 << 3);
-                accelUnit = 2.0 * 9.8 / 32768;
                 break;
             case config_t::MPU_FS_4G:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit = 4.0 * 9.8 / 32768;
+                accelUnit *= 2;
                 break;
             case config_t::MPU_FS_8G:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit = 8.0 * 9.8 / 32768;
+                accelUnit *= 4;
                 break;
             case config_t::MPU_FS_16G:
             default:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit = 16.0 * 9.8 / 32768;
+                accelUnit *= 8;
                 break;
         }
 
@@ -758,45 +802,67 @@ namespace inv {
                 break;
         }
 
-        //配置陀螺仪量程
+        //配置陀螺仪量程和单位
+        switch (GetConfig().gyroUnit) {
+            case config_t::MPU_UNIT_RadPerSec:
+                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                break;
+            case config_t::MPU_UNIT_RevolutionsPerMinute:
+                gyroUnit = (250.0 / 32768) * (60 / 360);
+                break;
+            case config_t::MPU_UNIT_DegPerSec:
+            default:
+                gyroUnit = 250.0 / 32768;
+                break;
+        }
         switch (GetConfig().gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::GYRO_CONFIG, 0 << 3);
-                gyroUnit = 250.0 / 32768;
                 break;
             case config_t::MPU_FS_500dps:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit = 500.0 / 32768;
+                gyroUnit *= 2;
                 break;
             case config_t::MPU_FS_1000dps:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit = 1000.0 / 32768;
+                gyroUnit *= 4;
                 break;
             case config_t::MPU_FS_2000dps:
             default:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit = 2000.0 / 32768;
+                gyroUnit *= 8;
                 break;
         }
 
-        //配置加速度计量程
+        //配置加速度计量程和单位
+        switch (GetConfig().accelUnit) {
+            case config_t::MPU_UNIT_G:
+                accelUnit = (2.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_mG:
+                accelUnit = (2000.0 / 32768);
+                break;
+            case config_t::MPU_UNIT_MetersPerSquareSecond:
+            default:
+                accelUnit = 2.0 * 9.8 / 32768;
+                break;
+        }
         switch (GetConfig().accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, 0 << 3);
-                accelUnit = 2.0 * 9.8 / 32768;
                 break;
             case config_t::MPU_FS_4G:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit = 4.0 * 9.8 / 32768;
+                accelUnit *= 2;
                 break;
             case config_t::MPU_FS_8G:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit = 8.0 * 9.8 / 32768;
+                accelUnit *= 4;
                 break;
             case config_t::MPU_FS_16G:
             default:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit = 16.0 * 9.8 / 32768;
+                accelUnit *= 8;
                 break;
         }
 
