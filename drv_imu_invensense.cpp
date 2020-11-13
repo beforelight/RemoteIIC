@@ -1335,6 +1335,10 @@ namespace inv {
             INV_TRACE("mpu9250 detected");
             reset(new mpu9250_t(_i2c, _addr));
             return 0;
+        } else if (icm20600_t(_i2c, _addr).Detect()) {
+            INV_TRACE("icm20600 detected");
+            reset(new icm20600_t(_i2c, _addr));
+            return 0;
         }
         return -1;
     }
