@@ -407,11 +407,6 @@ namespace inv {
         float ak8963Asa[3];
     };
 
-    class imuPtr_t : public std::shared_ptr<imu_t> {
-    public:
-        int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::AddrAutoDetect);
-    };
-
     class icm20948_t : public imu_t {
     public:
         ~icm20948_t() {}
@@ -449,5 +444,10 @@ namespace inv {
         constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
     };
 
+
+    class imuPtr_t : public std::shared_ptr<imu_t> {
+    public:
+        int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::AddrAutoDetect);
+    };
 }
 #endif //UTILITIES_DRV_IMU_INVENSENSE_HPP
