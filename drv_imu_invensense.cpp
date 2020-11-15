@@ -1337,6 +1337,10 @@ namespace inv {
             INV_TRACE("icm20600 detected");
             reset(new icm20600_t(_i2c, _addr));
             return 0;
+        } else if (icm20948_t(_i2c, _addr).Detect()) {
+            INV_TRACE("icm20948 detected");
+            reset(new icm20948_t(_i2c, _addr));
+            return 0;
         }
         return -1;
     }
@@ -1419,7 +1423,7 @@ namespace inv {
         res |= WriteReg((uint16_t) icm20948_RegMap::PWR_MGMT_1, 0x80);
         //等待复位成功
         do {
-            ReadReg((uint16_t) icm20602_RegMap::PWR_MGMT_1, &val);
+            ReadReg((uint16_t) icm20948_RegMap::PWR_MGMT_1, &val);
             INV_TRACE("0x%x at PWR_MGMT_1,wait it get 0x41", val);
         } while (val != 0x41);
 
@@ -1451,8 +1455,8 @@ namespace inv {
     }
 
     int icm20948_t::SwitchBank(int _bank) {
-        bank = 0;
-        return imu_t::WriteRegVerified((uint8_t) icm20948_RegMap::REG_BANK_SEL, 0 << 4);
+        bank = _bank;
+        return imu_t::WriteRegVerified((uint8_t) icm20948_RegMap::REG_BANK_SEL, _bank << 4);
     }
     int icm20948_t::WriteReg(uint16_t reg, const uint8_t val) {
         if (bank != reg >> 8) {
@@ -1642,26 +1646,28 @@ namespace inv {
 
         //设置连续读ak8963到fifo
         val = 0x5D;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_MST_CTRL, val);
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_MST_CTRL, val);
 
         val = ICM20948_AK09916_I2C_ADDR | 0x80;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_SLV0_ADDR, val);
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_SLV0_ADDR, val);
 
         val = (uint8_t) ak09916_RegMap::ST1;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_SLV0_REG, val);
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_SLV0_REG, val);
 
-        val = 0x89;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_SLV0_CTRL, val);
-
-        val = 0x09;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_SLV4_CTRL, val);
-
-        val = 0x81;
-        res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_MST_DELAY_CTRL, val);
 
         //唤醒ak09916
-        val = 1 << 3;
+        val = (1 << 3);
         res |= SubI2cWrite(ICM20948_AK09916_I2C_ADDR, (uint8_t) ak09916_RegMap::CNTL2, &val, 1);
+
+        val = 0x89;
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_SLV0_CTRL, val);
+
+        val = 0x09;
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_SLV4_CTRL, val);
+
+        val = 0x81;
+        res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_MST_DELAY_CTRL, val);
+
 
         if (res == 0) {
             SetIsOpen();
@@ -1945,12 +1951,13 @@ namespace inv {
     }
 
     int icm20948_t::Convert(float *mag_x, float *mag_y, float *mag_z) {
-        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
+//        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
+        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY)) {
 //            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
             return -1;
         }
         if (buf[14 + 8] & MPU9250_AK8963_OVERFLOW) {
-//            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
+            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
             return -1;
         }
         if (mag_x) { *mag_x = magUnit * ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }

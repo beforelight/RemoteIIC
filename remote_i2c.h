@@ -30,20 +30,33 @@
 
 class remote_i2c {
 public:
-    remote_i2c(const char *_bus = "/dev/i2c-1") : isOpen(0),bus(_bus) {
-        if ((fd = open(bus,O_RDWR)) < 0) {
-            printf("Unable to open remote_i2c control file %s\r\n", bus);
+    remote_i2c(const char *_bus = "/dev/i2c-1") : isOpen(0) {
+        if ((fd = open(_bus, O_RDWR)) < 0) {
+            printf("Unable to open remote_i2c control file %s\r\n", _bus);
         } else {
-            isOpen=true;
+            isOpen = true;
         }
     }
 
-    ~remote_i2c(){
-        if(isOpen){
+    ~remote_i2c() {
+        if (isOpen) {
             close(fd);
         }
     }
 
+    int Open(const char *_bus){
+        if (isOpen) {
+            close(fd);
+        }
+        if ((fd = open(_bus, O_RDWR)) < 0) {
+            printf("Unable to open remote_i2c control file %s\r\n", _bus);
+        } else {
+            isOpen = true;
+            return 0;
+        }
+        isOpen = false;
+        return -1;
+    }
 
     int is_open() { return isOpen; }
 
@@ -58,7 +71,9 @@ public:
               unsigned int len = 1);
 
 private:
-    const char* bus;
+    void operator=(const remote_i2c& r){}
+    remote_i2c(const remote_i2c& r){}
+//    const char *bus;
     int fd;
     int isOpen;
 };

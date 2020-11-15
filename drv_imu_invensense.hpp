@@ -365,11 +365,11 @@ namespace inv {
         uint8_t buf[14];
     };
 
-    class icm20600_t : public icm20602_t{
+    class icm20600_t : public icm20602_t {
     public:
     public:
         virtual ~icm20600_t() {}
-        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : icm20602_t(i2c, _addr) {}
+        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : icm20602_t(_i2c, _addr) {}
         bool Detect() override;
         std::string Report() override;
     };
@@ -412,10 +412,10 @@ namespace inv {
         int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::AddrAutoDetect);
     };
 
-    class icm20948_t : public imu_t{
+    class icm20948_t : public imu_t {
     public:
-        ~icm20948_t(){}
-        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr),bank(0){}
+        ~icm20948_t() {}
+        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr), bank(0) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -445,7 +445,7 @@ namespace inv {
         float gyroUnit;
         float accelUnit;
         uint8_t ak09916DeviceId;
-        uint8_t buf[14+9];
+        uint8_t buf[14 + 9];
         constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
     };
 
