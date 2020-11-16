@@ -1702,9 +1702,9 @@ namespace inv {
         memset(accel_bias_regular, 0, sizeof(accel_bias_regular));
 
         int times;
-        times = 20;
+        times = 50;
         while (times--) { while (!DataReady()) {}}//丢弃前20个数据
-        times = 20;
+        times = 50;
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
@@ -1719,9 +1719,9 @@ namespace inv {
         res |= ModifyReg((uint16_t) icm20948_RegMap::GYRO_CONFIG_2, 0b111 << 3, 0b111 << 3);
         res |= ModifyReg((uint16_t) icm20948_RegMap::ACCEL_CONFIG_2, 0b111 << 3, 0b111 << 3);
 
-        times = 20;
+        times = 50;
         while (times--) { while (!DataReady()) {}}//丢弃前20个数据
-        times = 20;
+        times = 50;
         while (times--) {
             while (!DataReady()) {}
             res |= ReadSensorBlocking();
@@ -1733,18 +1733,17 @@ namespace inv {
         }
 
         for (int i = 0; i < 3; ++i) {
-            gyro_bias_regular[i] *= 50;   //(32768/2000)*1000 LSB/mg
-            accel_bias_regular[i] *= 50;
-            gyro_bias_st[i] *= 50;         //(32768/250)*1000 LSB/dps
-            accel_bias_st[i] *= 50;
+            gyro_bias_regular[i] /= 50;
+            accel_bias_regular[i] /= 50;
+            gyro_bias_st[i] /= 50;
+            accel_bias_st[i] /= 50;
         }
 
 
         //计算加速度计自检结果
         uint8_t regs[3];
         int otp_value_zero = 0;
-        int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
-//    int result;
+        int st_shift_prod[3], st_shift_cust[3], i;
         res |= ReadReg((uint16_t) icm20948_RegMap::SELF_TEST_X_ACCEL, regs);
         res |= ReadReg((uint16_t) icm20948_RegMap::SELF_TEST_Y_ACCEL, regs + 1);
         res |= ReadReg((uint16_t) icm20948_RegMap::SELF_TEST_Z_ACCEL, regs + 2);
@@ -1758,35 +1757,20 @@ namespace inv {
         }
 
         if (!otp_value_zero) {
-            /* Self Test Pass/Fail Criteria A */
             for (i = 0; i < 3; i++) {
                 st_shift_cust[i] = accel_bias_st[i] - accel_bias_regular[i];
-                st_shift_ratio[i] = abs(st_shift_cust[i] / st_shift_prod[i] - DEF_ST_PRECISION);
-                if (st_shift_ratio[i] > DEF_ACCEL_ST_SHIFT_DELTA) {
+                if (st_shift_cust[i] < (st_shift_prod[i] >> 1)
+                    || st_shift_cust[i] > ((st_shift_prod[i] >> 1) + st_shift_prod[i])) {
                     //加速度计自检未通过
                     accel_result = 1;
-                    INV_DEBUG("accel[%d] st fail,result = %d,it demands less than %d", i, st_shift_ratio[i],
-                              DEF_ACCEL_ST_SHIFT_DELTA);
+                    INV_DEBUG("accel[%d] st fail,result = %f,ref:0.5<result<1.5", i, (float) st_shift_cust[i] / st_shift_prod[i]);
                 } else {
-                    INV_TRACE("accel[%d] st result = %d,it demands less than %d", i, st_shift_ratio[i],
-                              DEF_ACCEL_ST_SHIFT_DELTA);
+                    INV_TRACE("accel[%d] st result = %f,ref:0.5<result<1.5", i, (float) st_shift_cust[i] / st_shift_prod[i]);
                 }
             }
         } else {
-            /* Self Test Pass/Fail Criteria B */
-            for (i = 0; i < 3; i++) {
-                st_shift_cust[i] = abs(accel_bias_st[i] - accel_bias_regular[i]);
-                if (st_shift_cust[i] < DEF_ACCEL_ST_AL_MIN * (32768 / 2000) * 1000
-                    || st_shift_cust[i] > DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000) {
-                    //加速度计自检未通过
-                    accel_result = 1;
-                    INV_DEBUG("accel[%d] st fail,result = %d,it demands <%d && >%d", i, st_shift_cust[i],
-                              DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000, DEF_ACCEL_ST_AL_MIN * (32768 / 2000) * 1000);
-                } else {
-                    INV_TRACE("accel[%d] st result = %d,it demands <%d && >%d", i, st_shift_cust[i],
-                              DEF_ACCEL_ST_AL_MAX * (32768 / 2000) * 1000, DEF_ACCEL_ST_AL_MIN * (32768 / 2000) * 1000);
-                }
-            }
+            accel_result = 1;
+            INV_DEBUG("accel[%d] st fail,otp_value=0",i);
         }
 
         //计算陀螺仪自检结果
@@ -1802,47 +1786,21 @@ namespace inv {
             }
         }
 
-        for (i = 0; i < 3; i++) {
-            st_shift_cust[i] = gyro_bias_st[i] - gyro_bias_regular[i];
-            if (!otp_value_zero) {
-                /* Self Test Pass/Fail Criteria A */
-                if (st_shift_cust[i] < DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]) {
-                    //陀螺仪自检没过
-                    gyro_result = 1;
-                    INV_DEBUG("gyro[%d] st fail,result = %d,it demands greater than %d", i, st_shift_cust[i],
-                              DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]);
-                } else {
-                    INV_TRACE("gyro[%d] st result = %d,it demands greater than %d", i, st_shift_cust[i],
-                              DEF_GYRO_CT_SHIFT_DELTA * st_shift_prod[i]);
-                }
-            } else {
-                /* Self Test Pass/Fail Criteria B */
-                if (st_shift_cust[i] < DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION) {
-                    //陀螺仪自检没过
-                    gyro_result = 1;
-                    INV_DEBUG("gyro[%d] st fail,result = %d,it demands greater than %d", i, st_shift_cust[i],
-                              DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION);
-                } else {
-                    INV_TRACE("gyro[%d] st result = %d,it demands greater than %d", i, st_shift_cust[i],
-                              DEF_GYRO_ST_AL * (32768 / 250) * DEF_ST_PRECISION);
-                }
-            }
-        }
 
-        if (gyro_result == 0) {
-            /* Self Test Pass/Fail Criteria C */
+        if (!otp_value_zero) {
             for (i = 0; i < 3; i++) {
-                if (abs(gyro_bias_regular[i]) > DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION)
-                    //陀螺仪自检没过
-                {
-                    gyro_result = 1;
-                    INV_DEBUG("gyro[%d] st fail,result = %d,ift demands less than %d", i, (int) abs(gyro_bias_regular[i]),
-                              DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION);
+                st_shift_cust[i] = gyro_bias_st[i] - gyro_bias_regular[i];
+                if (st_shift_cust[i] < (st_shift_prod[i] >> 1)){
+                    //陀螺仪自检未通过
+                    accel_result = 1;
+                    INV_DEBUG("gyro[%d] st fail,result = %f,ref:0.5<result<1.5", i, (float) st_shift_cust[i] / st_shift_prod[i]);
                 } else {
-                    INV_TRACE("gyro[%d] st result = %d,it demands less than %d", i, (int) abs(gyro_bias_regular[i]),
-                              DEF_GYRO_OFFSET_MAX * (32768 / 250) * DEF_ST_PRECISION);
+                    INV_TRACE("gyro[%d] st result = %f,ref:0.5<result<1.5", i, (float) st_shift_cust[i] / st_shift_prod[i]);
                 }
             }
+        } else {
+            accel_result = 1;
+            INV_DEBUG("gyro[%d] st fail,otp_value=0",i);
         }
 
         //恢复原来的配置
@@ -1951,13 +1909,13 @@ namespace inv {
     }
 
     int icm20948_t::Convert(float *mag_x, float *mag_y, float *mag_z) {
-//        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
-        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY)) {
+        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY) || (buf[14 + 0] & MPU9250_AK8963_DATA_OVERRUN)) {
+//        if (!(buf[14 + 0] & MPU9250_AK8963_DATA_READY)) {
 //            INV_TRACE("0x%x at buf[14 + 0]", (int) buf[14 + 0]);
             return -1;
         }
         if (buf[14 + 8] & MPU9250_AK8963_OVERFLOW) {
-            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
+//            INV_TRACE("0x%x at buf[14 + 7]", (int) buf[14 + 7]);
             return -1;
         }
         if (mag_x) { *mag_x = magUnit * ((int16_t) (buf[14 + 2] << 8) | buf[14 + 1]); }

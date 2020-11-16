@@ -2,6 +2,7 @@
 #include "remote_i2c.h"
 #include "drv_imu_invensense.hpp"
 #include <map>
+#include <cmath>
 using namespace std;
 
 int remote_i2c_read(void *context,
@@ -117,11 +118,13 @@ int imu_invensense_example(int argc, const char **argv) {
                         my_imu->Convert(acc, acc + 1, acc + 2, gyro, gyro + 1, gyro + 2);
                         my_imu->Convert(&temp);
                         my_imu->Convert(mag, mag + 1, mag + 2);
-                        printf("dps| m/s^2| uT| °\t %8.3f %8.3f %8.3f\t| %8.3f %8.3f %8.3f\t| %8.3f %8.3f %8.3f\t| %8.3f\r\n",
+                        printf("dps| m/s^2| uT|° g m\t %8.3f %8.3f %8.3f\t| %8.3f %8.3f %8.3f\t| %8.3f %8.3f %8.3f\t| %8.3f %8.3f %8.3f\r\n",
                                gyro[0], gyro[1], gyro[2],
                                acc[0], acc[1], acc[2],
                                mag[0], mag[1], mag[2],
-                               temp
+                               temp,
+                               sqrtf(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]),
+                               sqrtf(mag[0] * mag[0] + mag[1] * mag[1] + mag[2] * mag[2])
                         );
                     }
                 } else {
