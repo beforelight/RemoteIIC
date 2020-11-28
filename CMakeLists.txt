@@ -21,13 +21,14 @@ SET (CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 
 #add_definitions(-DINV_IMU_DEBUG=1)
+add_definitions(-DINV_YES_TRACE)
 
 project(RemoteIIC)
 
 
 
 add_executable(RemoteIIC main.cpp remote_i2c.cpp remote_i2c.h smbus.cpp smbus.h
-        drv_imu_invensense.hpp drv_imu_invensense.cpp drv_imu_invensense_port.hpp
+        drv_imu_invensense.hpp drv_imu_invensense.cpp
         ahrs/ahrs.cpp
         ahrs/ahrs.h
         )

@@ -14,48 +14,29 @@
 #include <string>
 #include <memory>
 #include <functional>
-#include "drv_imu_invensense_port.hpp"
 
-#ifdef INV_PRINTF
+#if defined(__linux__)&&!defined(INV_PRINTF)
+#include<cstdio>
+#define INV_PRINTF printf
+#else
+#define INV_PRINTF(...)
+#endif //!defined(INV_PRINTF)
 
-#if (defined(HITSIC_INV_IMU_DEBUG) && (HITSIC_INV_IMU_DEBUG > 0))
-
-#if (defined(HITSIC_INV_YES_TRACE) && (HITSIC_INV_YES_TRACE > 0))
+#ifdef INV_YES_TRACE
 #define INV_TRACE_(fmt, ...) \
-    INV_PRINTF("[I]imu_inv line:%d:trace: " fmt "%s\r\n",  __LINE__, __VA_ARGS__)
+    INV_PRINTF("%s:%d:trace: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
 #define INV_TRACE(...) INV_TRACE_(__VA_ARGS__, "")
 #else
 #define INV_TRACE(...)
-#endif//(defined(HITSIC_INV_YES_TRACE)&&(HITSIC_INV_YES_TRACE>0))
+#endif //INV_YES_TRACE
 
-#if !(defined(HITSIC_INV_NO_DEBUG) && (HITSIC_INV_NO_DEBUG > 0))
+#ifndef INV_NO_DEBUG
 #define INV_DEBUG_(fmt, ...) \
-    INV_PRINTF("[E]imu_inv line:%d:debug: " fmt "%s\r\n",  __LINE__, __VA_ARGS__)
+    INV_PRINTF("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
 #define INV_DEBUG(...) INV_DEBUG_(__VA_ARGS__, "")
 #else
 #define INV_DEBUG(...)
-#endif//!(defined(HITSIC_INV_NO_DEBUG)&&(HITSIC_INV_NO_DEBUG>0))
-
-#endif//(defined(HITSIC_INV_IMU_DEBUG)&&(HITSIC_INV_IMU_DEBUG>0))
-
-#endif //INV_PRINTF
-
-#if defined(__linux__)
-#include<iostream>
-#undef INV_TRACE_
-#undef INV_TRACE
-#undef INV_DEBUG_
-#undef INV_DEBUG
-#undef HITSIC_INV_IMU_DEBUG
-#define HITSIC_INV_IMU_DEBUG 1
-#define INV_TRACE_(fmt, ...) \
-    printf("%s:%d:trace: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
-#define INV_TRACE(...) INV_TRACE_(__VA_ARGS__, "")
-#define INV_DEBUG_(fmt, ...) \
-    printf("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
-#define INV_DEBUG(...) INV_DEBUG_(__VA_ARGS__, "")
-#endif//defined(__linux__)
-
+#endif //INV_NO_DEBUG
 
 namespace inv {
 
