@@ -1,13 +1,8 @@
-﻿/**
- * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
- * @author xiao qq1761690868
- * @doc drv_imu_invensense.md
- * @version v1.0
- * @date 2020-10-16
- */
-#include <cstring>
+﻿#include <cstring>
 #include <cmath>
-#include"drv_imu_invensense.hpp"
+#include <cstdint>
+#include <cstdlib>
+#include"inv_imu.hpp"
 
 namespace inv {
     std::string icm20602_t::Report() {

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "remote_i2c.h"
-#include "drv_imu_invensense.hpp"
+#include "inv_imu.hpp"
 #include <map>
 #include <cmath>
 using namespace std;

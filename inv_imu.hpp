@@ -1,16 +1,7 @@
-/**
- * @brief 陀螺仪驱动，适用于mpu6050,mpu9250,icm20602
- * @author xiao qq1761690868
- * @doc drv_imu_invensense.md
- * @version v1.0
- * @date 2020-10-16
- */
-
-#ifndef UTILITIES_DRV_IMU_INVENSENSE_HPP
-#define UTILITIES_DRV_IMU_INVENSENSE_HPP
+#ifndef _INV_IMU_HPP_
+#define _INV_IMU_HPP_
 
 #include <cstdint>
-#include <cstdlib>
 #include <string>
 #include <memory>
 #include <functional>
@@ -950,6 +941,6 @@ namespace inv {
     constexpr static const int MPU9250_AK8963_OVERFLOW = (0x08);
     constexpr static const int MPU9250_AK8963_DATA_ERROR = (0x40);
     constexpr static const int MPU9250_AK8963_CNTL2_SRST = 0x01;
-#endif
+#endif //1
 }
-#endif //UTILITIES_DRV_IMU_INVENSENSE_HPP
+#endif //_INV_IMU_HPP_
