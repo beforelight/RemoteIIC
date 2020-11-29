@@ -9,7 +9,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20602\t";
         rtv += "addr:";
-        rtv += std::to_string((int) GetI2cAddr());
+        rtv += std::to_string((int) addr);
         rtv += '\t';
         return rtv;
     }
@@ -43,8 +43,8 @@ namespace inv {
     }
 
     int icm20602_t::Init(config_t _cfg) {
-        SetConfig(_cfg);
-        ClearIsOpen();
+        cfg = _cfg;
+        isOpen = false;
         int res = 0;
         if (!Detect()) { return -1; }
         //软复位
@@ -57,7 +57,7 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) icm20602_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (GetConfig().gyroBandwidth) {
+        switch (cfg.gyroBandwidth) {
             case config_t::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::CONFIG, 0);
                 break;
@@ -85,7 +85,7 @@ namespace inv {
         }
 
         //配置陀螺仪量程和单位
-        switch (GetConfig().gyroUnit) {
+        switch (cfg.gyroUnit) {
             case config_t::MPU_UNIT_RadPerSec:
                 gyroUnit = (250.0 / 32768) * (M_PI / 180);
                 break;
@@ -97,7 +97,7 @@ namespace inv {
                 gyroUnit = 250.0 / 32768;
                 break;
         }
-        switch (GetConfig().gyroFullScale) {
+        switch (cfg.gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::GYRO_CONFIG, 0 << 3);
                 break;
@@ -117,7 +117,7 @@ namespace inv {
         }
 
         //配置加速度计量程和单位
-        switch (GetConfig().accelUnit) {
+        switch (cfg.accelUnit) {
             case config_t::MPU_UNIT_G:
                 accelUnit = (2.0 / 32768);
                 break;
@@ -129,7 +129,7 @@ namespace inv {
                 accelUnit = 2.0 * 9.8 / 32768;
                 break;
         }
-        switch (GetConfig().accelFullScale) {
+        switch (cfg.accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG, 0 << 3);
                 break;
@@ -149,7 +149,7 @@ namespace inv {
         }
 
         //配置加速度计lpf
-        switch (GetConfig().accelBandwidth) {
+        switch (cfg.accelBandwidth) {
             case config_t::MPU_ABW_218:
                 res |= WriteRegVerified((uint8_t) icm20602_RegMap::ACCEL_CONFIG2, 1);
                 break;
@@ -180,20 +180,20 @@ namespace inv {
         res |= EnableDataReadyInt();
 
         if (res == 0) {
-            SetIsOpen();
+            isOpen = true;
         }
         return res;
     }
 
     bool icm20602_t::Detect() {
         uint8_t val = 0;
-        SetI2cAddr(0x68);
+        if (addrAutoDetect) { addr = 0x68; }
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x12 == val) {
             return true;
         }
         val = 0;
-        SetI2cAddr(0x69);
+        if (addrAutoDetect) { addr = 0x69; }
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x12 == val) {
             return true;
@@ -204,7 +204,7 @@ namespace inv {
     int icm20602_t::SelfTest() {
         if (!IsOpen()) { return -1; }
         int res = 0;
-        config_t backup_cfg = GetConfig();
+        config_t backup_cfg = cfg;
         config_t st_cfg;
         st_cfg.gyroFullScale = config_t::MPU_FS_250dps;
         st_cfg.accelFullScale = config_t::MPU_FS_2G;
@@ -271,7 +271,7 @@ namespace inv {
         int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL, regs, 3);
+        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL, regs, 3);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -314,7 +314,7 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO, regs, 3);
+        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO, regs, 3);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -383,11 +383,11 @@ namespace inv {
     }
 
     int icm20602_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int icm20602_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int icm20602_t::Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
@@ -421,7 +421,7 @@ namespace inv {
     int mpu6050_t::SelfTest() {
         if (!IsOpen()) { return -1; }
         int res = 0;
-        config_t backup_cfg = GetConfig();
+        config_t backup_cfg = cfg;
         config_t st_cfg;
         st_cfg.gyroFullScale = config_t::MPU_FS_250dps;
         st_cfg.accelFullScale = config_t::MPU_FS_8G;
@@ -482,7 +482,7 @@ namespace inv {
 
         //开始计算自检结果
         uint8_t regs[4];
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
+        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
         int a_st[3];
         int g_st[3];
         int ft_a[3];
@@ -551,7 +551,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:mpu6050\t";
         rtv += "addr:";
-        rtv += std::to_string((int) GetI2cAddr());
+        rtv += std::to_string((int) addr);
         rtv += '\t';
         return rtv;
     }
@@ -579,8 +579,8 @@ namespace inv {
         return res;
     }
     int mpu6050_t::Init(config_t _cfg) {
-        SetConfig(_cfg);
-        ClearIsOpen();
+        cfg = _cfg;
+        isOpen = false;
         int res = 0;
         if (!Detect()) { return -1; }
         //软复位
@@ -593,7 +593,7 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) mpu6050_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (GetConfig().gyroBandwidth) {
+        switch (cfg.gyroBandwidth) {
             case config_t::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::CONFIG, 0);
                 break;
@@ -621,7 +621,7 @@ namespace inv {
         }
 
         //配置陀螺仪量程和单位
-        switch (GetConfig().gyroUnit) {
+        switch (cfg.gyroUnit) {
             case config_t::MPU_UNIT_RadPerSec:
                 gyroUnit = (250.0 / 32768) * (M_PI / 180);
                 break;
@@ -633,7 +633,7 @@ namespace inv {
                 gyroUnit = 250.0 / 32768;
                 break;
         }
-        switch (GetConfig().gyroFullScale) {
+        switch (cfg.gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::GYRO_CONFIG, 0 << 3);
                 break;
@@ -653,7 +653,7 @@ namespace inv {
         }
 
         //配置加速度计量程和单位
-        switch (GetConfig().accelUnit) {
+        switch (cfg.accelUnit) {
             case config_t::MPU_UNIT_G:
                 accelUnit = (2.0 / 32768);
                 break;
@@ -665,7 +665,7 @@ namespace inv {
                 accelUnit = 2.0 * 9.8 / 32768;
                 break;
         }
-        switch (GetConfig().accelFullScale) {
+        switch (cfg.accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) mpu6050_RegMap::ACCEL_CONFIG, 0 << 3);
                 break;
@@ -688,19 +688,19 @@ namespace inv {
         res |= EnableDataReadyInt();
 
         if (res == 0) {
-            SetIsOpen();
+            isOpen = true;
         }
         return res;
     }
     bool mpu6050_t::Detect() {
         uint8_t val = 0;
-        SetI2cAddr(0x68);
+        if (addrAutoDetect) { addr = 0x68; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x68 == val) {
             return true;
         }
         val = 0;
-        SetI2cAddr(0x69);
+        if (addrAutoDetect) { addr = 0x69; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x68 == val) {
             return true;
@@ -719,11 +719,11 @@ namespace inv {
     }
 
     int mpu6050_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
+        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int mpu6050_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
+        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
     }
 
     int mpu6050_t::Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
@@ -756,8 +756,8 @@ namespace inv {
 
 
     int mpu9250_t::Init(config_t _cfg) {
-        SetConfig(_cfg);
-        ClearIsOpen();
+        cfg = _cfg;
+        isOpen = false;
         int res = 0;
         if (!Detect()) { return -1; }
         //软复位
@@ -770,7 +770,7 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) mpu9250_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (GetConfig().gyroBandwidth) {
+        switch (cfg.gyroBandwidth) {
             case config_t::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::CONFIG, 0);
                 break;
@@ -798,7 +798,7 @@ namespace inv {
         }
 
         //配置陀螺仪量程和单位
-        switch (GetConfig().gyroUnit) {
+        switch (cfg.gyroUnit) {
             case config_t::MPU_UNIT_RadPerSec:
                 gyroUnit = (250.0 / 32768) * (M_PI / 180);
                 break;
@@ -810,7 +810,7 @@ namespace inv {
                 gyroUnit = 250.0 / 32768;
                 break;
         }
-        switch (GetConfig().gyroFullScale) {
+        switch (cfg.gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::GYRO_CONFIG, 0 << 3);
                 break;
@@ -830,7 +830,7 @@ namespace inv {
         }
 
         //配置加速度计量程和单位
-        switch (GetConfig().accelUnit) {
+        switch (cfg.accelUnit) {
             case config_t::MPU_UNIT_G:
                 accelUnit = (2.0 / 32768);
                 break;
@@ -842,7 +842,7 @@ namespace inv {
                 accelUnit = 2.0 * 9.8 / 32768;
                 break;
         }
-        switch (GetConfig().accelFullScale) {
+        switch (cfg.accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG, 0 << 3);
                 break;
@@ -862,7 +862,7 @@ namespace inv {
         }
 
         //配置加速度计lpf
-        switch (GetConfig().accelBandwidth) {
+        switch (cfg.accelBandwidth) {
             case config_t::MPU_ABW_218:
                 res |= WriteRegVerified((uint8_t) mpu9250_RegMap::ACCEL_CONFIG2, 1);
                 break;
@@ -893,7 +893,7 @@ namespace inv {
         res |= EnableDataReadyInt();
 
         if (res != 0) { return res; }
-        ClearIsOpen();
+        isOpen = false;
 
         uint8_t val;
         //设置9250内部i2c
@@ -951,7 +951,7 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) mpu9250_RegMap::I2C_MST_DELAY_CTRL, val);
 
         if (res == 0) {
-            SetIsOpen();
+            isOpen = true;
             return 0;
         } else {
             return res;
@@ -962,7 +962,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:mpu9250\t";
         rtv += "addr:";
-        rtv += std::to_string((int) GetI2cAddr());
+        rtv += std::to_string((int) addr);
         rtv += '\t';
 
         rtv += "magnetometer:ak8963\t";
@@ -1090,11 +1090,11 @@ namespace inv {
     }
 
     int mpu9250_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
     }
 
     int mpu9250_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
     }
 
     int mpu9250_t::SoftReset(void) {
@@ -1121,13 +1121,13 @@ namespace inv {
     }
     bool mpu9250_t::Detect() {
         uint8_t val = 0;
-        SetI2cAddr(0x68);
+        if (addrAutoDetect) { addr = 0x68; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x71 == val) {
             return true;
         }
         val = 0;
-        SetI2cAddr(0x69);
+        if (addrAutoDetect) { addr = 0x69; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x71 == val) {
             return true;
@@ -1137,7 +1137,7 @@ namespace inv {
     int mpu9250_t::SelfTest() {
         if (!IsOpen()) { return -1; }
         int res = 0;
-        config_t backup_cfg = GetConfig();
+        config_t backup_cfg = cfg;
         config_t st_cfg;
         st_cfg.gyroFullScale = config_t::MPU_FS_250dps;
         st_cfg.accelFullScale = config_t::MPU_FS_2G;
@@ -1204,7 +1204,7 @@ namespace inv {
         int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL, regs, 3);
+        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL, regs, 3);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1247,7 +1247,7 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |= (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO, regs, 3);
+        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO, regs, 3);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1384,15 +1384,22 @@ namespace inv {
         }
         return res;
     }
+    imu_t::imu_t(i2cInterface_t &_i2c, uint8_t _addr) : i2c(_i2c), isOpen(false), addr(_addr), cfg(config_t()) {
+        if (addr == SlaveAddressAutoDetect) {
+            addrAutoDetect = true;
+        } else {
+            addrAutoDetect = false;
+        }
+    }
     bool icm20600_t::Detect() {
         uint8_t val = 0;
-        SetI2cAddr(0x68);
+        if (addrAutoDetect) { addr = 0x68; };
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x11 == val) {
             return true;
         }
         val = 0;
-        SetI2cAddr(0x69);
+        if (addrAutoDetect) { addr = 0x69; };
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x11 == val) {
             return true;
@@ -1403,7 +1410,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20600\t";
         rtv += "addr:";
-        rtv += std::to_string((int) GetI2cAddr());
+        rtv += std::to_string((int) addr);
         rtv += '\t';
         return rtv;
     }
@@ -1433,14 +1440,14 @@ namespace inv {
     }
     bool icm20948_t::Detect() {
         uint8_t val = 0;
-        SetI2cAddr(0x68);
+        if (addrAutoDetect) { addr = 0x68; };
         SwitchBank(0);
         ReadReg((uint16_t) icm20948_RegMap::WHO_AM_I, &val);
         if (0xEA == val) {
             return true;
         }
         val = 0;
-        SetI2cAddr(0x69);
+        if (addrAutoDetect) { addr = 0x69; };
         SwitchBank(0);
         ReadReg((uint16_t) icm20948_RegMap::WHO_AM_I, &val);
         if (0xEA == val) {
@@ -1479,8 +1486,8 @@ namespace inv {
     }
 
     int icm20948_t::Init(config_t _cfg) {
-        SetConfig(_cfg);
-        ClearIsOpen();
+        cfg = _cfg;
+        isOpen = false;
         int res = 0;
         if (!Detect()) { return -1; }
         //软复位
@@ -1496,7 +1503,7 @@ namespace inv {
 
         //配置陀螺仪lpf
 //        res |= WriteRegVerified((uint16_t) icm20948_RegMap::GYRO_CONFIG_1, 0);
-        switch (GetConfig().gyroBandwidth) {
+        switch (cfg.gyroBandwidth) {
             case config_t::MPU_GBW_250:
                 res |= WriteRegVerified((uint16_t) icm20948_RegMap::GYRO_CONFIG_1, 1 | (0 << 3));
                 break;
@@ -1524,7 +1531,7 @@ namespace inv {
         }
 
         //配置陀螺仪量程和单位
-        switch (GetConfig().gyroUnit) {
+        switch (cfg.gyroUnit) {
             case config_t::MPU_UNIT_RadPerSec:
                 gyroUnit = (250.0 / 32768) * (M_PI / 180);
                 break;
@@ -1537,7 +1544,7 @@ namespace inv {
                 break;
         }
 
-        switch (GetConfig().gyroFullScale) {
+        switch (cfg.gyroFullScale) {
             case config_t::MPU_FS_250dps:
                 res |= ModifyReg((uint16_t) icm20948_RegMap::GYRO_CONFIG_1, 0 << 1, 3 << 1);
                 break;
@@ -1557,7 +1564,7 @@ namespace inv {
         }
 
         //配置加速度计lpf
-        switch (GetConfig().accelBandwidth) {
+        switch (cfg.accelBandwidth) {
             case config_t::MPU_ABW_218:
                 res |= WriteRegVerified((uint16_t) icm20948_RegMap::ACCEL_CONFIG, 1 | (1 << 3));
                 break;
@@ -1585,7 +1592,7 @@ namespace inv {
         }
 
         //配置加速度计量程和单位
-        switch (GetConfig().accelUnit) {
+        switch (cfg.accelUnit) {
             case config_t::MPU_UNIT_G:
                 accelUnit = (2.0 / 32768);
                 break;
@@ -1597,7 +1604,7 @@ namespace inv {
                 accelUnit = 2.0 * 9.8 / 32768;
                 break;
         }
-        switch (GetConfig().accelFullScale) {
+        switch (cfg.accelFullScale) {
             case config_t::MPU_FS_2G:
                 res |= ModifyReg((uint16_t) icm20948_RegMap::ACCEL_CONFIG, 0 << 1, 3 << 1);
                 break;
@@ -1623,7 +1630,7 @@ namespace inv {
         res |= EnableDataReadyInt();
 
         if (res != 0) { return res; }
-        ClearIsOpen();
+        isOpen = false;
 
         //设置内部i2c
         res |= WriteRegVerified((uint16_t) icm20948_RegMap::I2C_MST_CTRL, 1 << 4 | 12);//471khz，连续读模式
@@ -1665,7 +1672,7 @@ namespace inv {
 
 
         if (res == 0) {
-            SetIsOpen();
+            isOpen = true;
             return 0;
         } else {
             return res;
@@ -1674,7 +1681,7 @@ namespace inv {
     int icm20948_t::SelfTest() {
         if (!IsOpen()) { return -1; }
         int res = 0;
-        config_t backup_cfg = GetConfig();
+        config_t backup_cfg = cfg;
         config_t st_cfg;
         st_cfg.gyroFullScale = config_t::MPU_FS_250dps;
         st_cfg.accelFullScale = config_t::MPU_FS_2G;
@@ -1874,14 +1881,14 @@ namespace inv {
         if (bank != 0) {
             SwitchBank(0);
         }
-        return (*i2c.readBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
+        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
     }
 
     int icm20948_t::ReadSensorNonBlocking() {
         if (bank != 0) {
             SwitchBank(0);
         }
-        return (*i2c.readNonBlocking)(i2c.context, GetI2cAddr(), (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
+        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
     }
 
     int icm20948_t::Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
@@ -1941,7 +1948,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20948\t";
         rtv += "addr:";
-        rtv += std::to_string((int) GetI2cAddr());
+        rtv += std::to_string((int) addr);
         rtv += '\t';
 
         rtv += "magnetometer:ak09916\t";

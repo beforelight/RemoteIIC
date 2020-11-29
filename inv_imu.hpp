@@ -299,30 +299,17 @@ namespace inv {
         virtual int Convert(float *mag_x, float *mag_y, float *mag_z) = 0;
         virtual int Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) = 0;
         virtual int Convert(float *temp) = 0;
+        virtual bool IsOpen() { return isOpen; };
     public:
-        static constexpr const uint8_t AddrAutoDetect = 0;
-        imu_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : i2c(_i2c), isOpen(false), addr(_addr), cfg(config_t()) {
-            if (addr == AddrAutoDetect) {
-                addrAutoDetect = 0;
-            } else {
-                addrAutoDetect = 1;
-            }
-        }
-        bool IsOpen() { return isOpen; };
-        void SetConfig(config_t _cfg) { cfg = _cfg; }
-        constexpr const config_t &GetConfig() { return cfg; }
-        void SetI2cAddr(uint8_t _addr) { if (addrAutoDetect == 0) { addr = _addr; }}
-        constexpr const uint8_t &GetI2cAddr() { return addr; }
+        static constexpr const uint8_t SlaveAddressAutoDetect = 0;
+        imu_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect);
         int WriteReg(uint8_t reg, const uint8_t val);
         int WriteRegVerified(uint8_t reg, const uint8_t val);
         int ReadReg(uint8_t reg, uint8_t *val);
         int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask);
     protected:
-        void SetIsOpen() { isOpen = true; }
-        void ClearIsOpen() { isOpen = false; }
         i2cInterface_t &i2c;
-    private:
-        int addrAutoDetect;
+        bool addrAutoDetect;
         uint8_t addr;
         bool isOpen;
         config_t cfg;
@@ -331,7 +318,7 @@ namespace inv {
     class mpu6050_t : public imu_t {
     public:
         ~mpu6050_t() {}
-        mpu6050_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
+        mpu6050_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -357,7 +344,7 @@ namespace inv {
     class icm20602_t : public imu_t {
     public:
         virtual ~icm20602_t() {}
-        icm20602_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
+        icm20602_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -383,7 +370,7 @@ namespace inv {
     public:
     public:
         virtual ~icm20600_t() {}
-        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : icm20602_t(_i2c, _addr) {}
+        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : icm20602_t(_i2c, _addr) {}
         bool Detect() override;
         std::string Report() override;
     };
@@ -392,7 +379,7 @@ namespace inv {
     public:
         virtual ~mpu9250_t() {}
 
-        mpu9250_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr) {}
+        mpu9250_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -424,7 +411,7 @@ namespace inv {
     class icm20948_t : public imu_t {
     public:
         ~icm20948_t() {}
-        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = AddrAutoDetect) : imu_t(_i2c, _addr), bank(0) {}
+        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), bank(0) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -461,7 +448,7 @@ namespace inv {
 
     class imuPtr_t : public std::shared_ptr<imu_t> {
     public:
-        int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::AddrAutoDetect);
+        int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::SlaveAddressAutoDetect);
     };
 
     /*
