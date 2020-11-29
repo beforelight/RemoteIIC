@@ -5,10 +5,11 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <utility>
+
 
 #if defined(__linux__) && !defined(INV_PRINTF)
 #include<cstdio>
-#include <utility>
 #define INV_PRINTF printf
 #else
 #define INV_PRINTF(...)
@@ -75,151 +76,6 @@ namespace inv {
                 : SPI(_masterTransferBlocking, _masterTransferBlocking) {}
     };
 
-    //i2c接口
-    class i2cInterface_t {
-    public:
-        /**
-         * @param  _context          :调用函数指针传入的用户参数
-         * @param  _readBlocking     :约定如下，阻塞读
-         *  **************************************************
-         *  * @brief   这里的函数指针的参数约定
-         *  * @param  {void*}                : 用户参数
-         *  * @param  {uint8_t}        : iic从机地址
-         *  * @param  {uint8_t}        : 从机寄存器地址
-         *  * @param  {const unsigned* char} : 缓存地址
-         *  * @param  {unsigned int}         : 数据长度
-         *  * @return {int}                  : 错误码
-         *  **************************************************
-         * @param  _writeBlocking    :约定同上，阻塞写
-         * @param  _readNonBlocking  :约定同上，非阻塞读
-         */
-        i2cInterface_t(void *_context,
-                       int (*_readBlocking)(void *context,
-                                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len),
-                       int (*_writeBlocking)(void *context,
-                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len),
-                       int (*_readNonBlocking)(void *context,
-                                               uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len))
-                : context(_context), readBlocking(_readBlocking), writeBlocking(_writeBlocking),
-                  readNonBlocking(_readNonBlocking) {}
-
-        i2cInterface_t(void *_context,
-                       int (*_readBlocking)(void *context,
-                                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len),
-                       int (*_writeBlocking)(void *context,
-                                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len)) :
-                i2cInterface_t(_context, _readBlocking, _writeBlocking, _readBlocking) {}
-
-
-        void *context;
-        int (*readBlocking)(void *context,
-                            uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len);
-        int (*writeBlocking)(void *context,
-                             uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len);
-        int (*readNonBlocking)(void *context,
-                               uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len);
-    };
-
-#if (__cplusplus > 201103L)
-    class i2cif_t : public i2cInterface_t {
-    private:
-        std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> read;
-        std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> readNB;
-        std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> write;
-        static int ReadBlocking(void *context,
-                                uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
-            return static_cast<i2cif_t *>(context)->read(addr, reg, val, len);
-        }
-        static int WriteBlocking(void *context,
-                                 uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len) {
-            return static_cast<i2cif_t *>(context)->write(addr, reg, val, len);
-        }
-        static int ReadNonBlocking(void *context,
-                                   uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
-            return static_cast<i2cif_t *>(context)->readNB(addr, reg, val, len);
-        }
-    public:
-        i2cif_t(std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _read,
-                std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> _write,
-                std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _readNonBlocking) :
-                read(_read), readNB(_readNonBlocking), write(_write),
-                i2cInterface_t(this, ReadBlocking, WriteBlocking, ReadNonBlocking) {}
-        i2cif_t(std::function<int(uint8_t, uint8_t, uint8_t *, unsigned int)> _read,
-                std::function<int(uint8_t, uint8_t, const uint8_t *, unsigned int)> _write)
-                : i2cif_t(_read, _write, _read) {}
-    };
-    class spiif_t : public i2cInterface_t {
-    private:
-//        void *realloc(void *mem_address, unsigned int newsize);
-        uint8_t *txbuff;
-        uint8_t *rxbuff;
-        int *shareCounter;
-        int buffsize;
-        std::function<int(const uint8_t *, uint8_t *, unsigned int)> transfer;
-        static int ReadBlocking(void *context,
-                                uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len) {
-            spiif_t *spi = static_cast<spiif_t *>(context);
-            if (len + 1 > spi->buffsize) {
-                if ((*spi->shareCounter) == 0) {
-                    free(spi->txbuff);
-                    free(spi->rxbuff);
-                } else {
-                    (*spi->shareCounter)--;
-                }
-                spi->txbuff = (uint8_t *) malloc(len + 30);
-                spi->rxbuff = (uint8_t *) malloc(len + 30);
-                spi->buffsize = len + 30;
-            }
-            spi->txbuff[0] = (1 << 8) | (reg & 0x7f);
-            int rtv = spi->transfer(spi->txbuff, spi->rxbuff, len + 1);
-            memcpy(val, &spi->rxbuff[1], len);
-            return rtv;
-        }
-        static int WriteBlocking(void *context,
-                                 uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len) {
-            spiif_t *spi = static_cast<spiif_t *>(context);
-            if (len + 1 > spi->buffsize) {
-                if ((*spi->shareCounter) == 0) {
-                    free(spi->txbuff);
-                    free(spi->rxbuff);
-                } else {
-                    (*spi->shareCounter)--;
-                }
-                spi->txbuff = (uint8_t *) malloc(len + 30);
-                spi->rxbuff = (uint8_t *) malloc(len + 30);
-                spi->buffsize = len + 30;
-            }
-            spi->txbuff[0] = (reg & 0x7f);
-            memcpy(&spi->txbuff[1], val, len);
-            int rtv = spi->transfer(spi->txbuff, spi->rxbuff, len + 1);
-            return rtv;
-        }
-    public:
-        spiif_t(std::function<int(const uint8_t *, uint8_t *, unsigned int)> transfer_)
-                : transfer(transfer_), shareCounter(new int(0)), i2cInterface_t(this, ReadBlocking, WriteBlocking) {
-            txbuff = (uint8_t *) malloc(30);
-            rxbuff = (uint8_t *) malloc(30);
-            buffsize = 30;
-        }
-        spiif_t(const spiif_t &r) : i2cInterface_t(this, ReadBlocking, WriteBlocking) {
-            rxbuff = r.rxbuff;
-            txbuff = r.txbuff;
-            shareCounter = r.shareCounter;
-            buffsize = r.buffsize;
-            transfer = r.transfer;
-            (*shareCounter)++;
-        };
-        ~spiif_t() {
-            if (*shareCounter == 0) {
-                free(txbuff);
-                free(rxbuff);
-                delete shareCounter;
-            } else {
-                (*shareCounter)--;
-            }
-        }
-    };
-#endif
     struct config_t {
         enum mpu_accel_fs {    // In the ACCEL_CONFIG (0x1C) register, the full scale select  bits are :
             MPU_FS_2G = 0,    // 00 = 2G
@@ -273,7 +129,7 @@ namespace inv {
             MPU_UNIT_mG
         } accelUnit;
 
-        config_t(mpu_accel_fs _accel_fs = MPU_FS_8G, mpu_accel_bw _accel_bw = MPU_ABW_99,
+        explicit config_t(mpu_accel_fs _accel_fs = MPU_FS_8G, mpu_accel_bw _accel_bw = MPU_ABW_99,
                  mpu_accel_unit mpuAccelUnit = MPU_UNIT_MetersPerSquareSecond,
                  mpu_gyro_fs _gyro_gs = MPU_FS_2000dps, mpu_gyro_bw _gyro_bw = MPU_GBW_92,
                  mpu_gyro_unit mpuGyroUnit = MPU_UNIT_DegPerSec)
@@ -299,18 +155,21 @@ namespace inv {
         virtual int Convert(float *mag_x, float *mag_y, float *mag_z) = 0;
         virtual int Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) = 0;
         virtual int Convert(float *temp) = 0;
-        virtual bool IsOpen() { return isOpen; };
+        virtual bool IsOpen();
     public:
-        static constexpr const uint8_t SlaveAddressAutoDetect = 0;
-        imu_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect);
-        int WriteReg(uint8_t reg, const uint8_t val);
-        int WriteRegVerified(uint8_t reg, const uint8_t val);
+        static constexpr const uint16_t SlaveAddressAutoDetect = 0;
+        explicit imu_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect);
+        explicit imu_t(SPI &_spi);
+        int WriteReg(uint8_t reg, uint8_t val);
+        int WriteRegVerified(uint8_t reg, uint8_t val);
         int ReadReg(uint8_t reg, uint8_t *val);
-        int ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask);
+        int ModifyReg(uint8_t reg, uint8_t val, uint8_t mask);
     protected:
-        i2cInterface_t &i2c;
+        I2C *i2c;
+        SPI *spi;
+        I2C::transfer i2cTransfer;
+        SPI::transfer spiTransfer;
         bool addrAutoDetect;
-        uint8_t addr;
         bool isOpen;
         config_t cfg;
     };
@@ -318,7 +177,7 @@ namespace inv {
     class mpu6050_t : public imu_t {
     public:
         ~mpu6050_t() {}
-        mpu6050_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
+        mpu6050_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -336,16 +195,16 @@ namespace inv {
         int Convert(float *temp) override;
 
     private:
-        float gyroUnit;
-        float accelUnit;
-        uint8_t buf[14];
+        float gyroUnit{};
+        float accelUnit{};
+        uint8_t buf[14]{};
     };
 
     class icm20602_t : public imu_t {
     public:
         virtual ~icm20602_t() {}
-        icm20602_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
-
+        icm20602_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1) {}
+        icm20602_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1) {}
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
         int SelfTest() override;
@@ -363,14 +222,17 @@ namespace inv {
     private:
         float gyroUnit;
         float accelUnit;
-        uint8_t buf[14];
+        uint8_t *buf;
+        uint8_t txbuf[15];
+        uint8_t rxbuf[15];
     };
 
     class icm20600_t : public icm20602_t {
     public:
     public:
         virtual ~icm20600_t() {}
-        icm20600_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : icm20602_t(_i2c, _addr) {}
+        icm20600_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : icm20602_t(_i2c, _addr) {}
+        icm20600_t(SPI &_spi) : icm20602_t(_spi) {}
         bool Detect() override;
         std::string Report() override;
     };
@@ -379,7 +241,8 @@ namespace inv {
     public:
         virtual ~mpu9250_t() {}
 
-        mpu9250_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
+        mpu9250_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1) {}
+        mpu9250_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -399,7 +262,9 @@ namespace inv {
         int SubI2cRead(uint8_t addr, uint8_t reg, uint8_t *val, unsigned int len = 1);
         int SubI2cWrite(uint8_t addr, uint8_t reg, const uint8_t *val, unsigned int len = 1);
     private:
-        uint8_t buf[22];
+        uint8_t *buf;
+        uint8_t txbuf[23];
+        uint8_t rxbuf[23];
         float gyroUnit;
         float accelUnit;
         uint8_t ak8963DeviceId;
@@ -411,7 +276,8 @@ namespace inv {
     class icm20948_t : public imu_t {
     public:
         ~icm20948_t() {}
-        icm20948_t(i2cInterface_t &_i2c, uint8_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), bank(0) {}
+        icm20948_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1), bank(0) {}
+        icm20948_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1), bank(0) {}
 
         int Init(config_t _cfg = config_t()) override;
         bool Detect() override;
@@ -441,25 +307,19 @@ namespace inv {
         float gyroUnit;
         float accelUnit;
         uint8_t ak09916DeviceId;
-        uint8_t buf[14 + 9];
+        uint8_t *buf;
+        uint8_t txbuf[24];
+        uint8_t rxbuf[24];
         constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
     };
 
 
     class imuPtr_t : public std::shared_ptr<imu_t> {
     public:
-        int Load(i2cInterface_t &_i2c, uint8_t _addr = imu_t::SlaveAddressAutoDetect);
+        int Load(I2C &_i2c, uint16_t _addr = imu_t::SlaveAddressAutoDetect);
+        int Load(SPI &_spi);
     };
 
-    /*
-     * 以下是常量定义
-     * 以下是常量定义
-     * 以下是常量定义
-     * 以下是常量定义
-     * 以下是常量定义
-     * 以下是常量定义
-     * 以下是常量定义
-     */
 #if 1
     enum class icm20602_RegMap : uint8_t {
         XG_OFFS_TC_H = 0x4,            // READ/ WRITE
@@ -953,21 +813,21 @@ namespace inv {
             6430, 6725, 7035, 7358, 7697, 8051, 8421, 8809,
             9214, 9638, 10081, 10545, 11030, 11537, 12068, 12623};
 
-    constexpr static const int MPU9250_I2C_SLV4_EN = 0x80;
-    constexpr static const int MPU9250_I2C_SLV4_DONE = 0x40;
-    constexpr static const int MPU9250_I2C_SLV4_NACK = 0x10;
-    constexpr static const int MPU9250_AK8963_I2C_ADDR = 0x0C;
-    constexpr static const int ICM20948_AK09916_I2C_ADDR = 0x0C;
-    constexpr static const int MPU9250_AK8963_POWER_DOWN = 0x10;
-    constexpr static const int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
-    constexpr static const int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;
-    constexpr static const int MPU9250_AK8963_CONTINUOUS_MEASUREMENT = 0x16; //MODE 2
-    constexpr static const int MPU9250_AK8963_DATA_READY = (0x01);
-    constexpr static const int MPU9250_AK8963_DATA_OVERRUN = (0x02);
-    //constexpr static const int MPU9250_AK8963_OVERFLOW = (0x80);
-    constexpr static const int MPU9250_AK8963_OVERFLOW = (0x08);
-    constexpr static const int MPU9250_AK8963_DATA_ERROR = (0x40);
-    constexpr static const int MPU9250_AK8963_CNTL2_SRST = 0x01;
+    constexpr static const unsigned int MPU9250_I2C_SLV4_EN = 0x80;
+    constexpr static const unsigned int MPU9250_I2C_SLV4_DONE = 0x40;
+    constexpr static const unsigned int MPU9250_I2C_SLV4_NACK = 0x10;
+    constexpr static const unsigned int MPU9250_AK8963_I2C_ADDR = 0x0C;
+    constexpr static const unsigned int ICM20948_AK09916_I2C_ADDR = 0x0C;
+    constexpr static const unsigned int MPU9250_AK8963_POWER_DOWN = 0x10;
+    constexpr static const unsigned int MPU9250_AK8963_FUSE_ROM_ACCESS = 0x1F;
+    constexpr static const unsigned int MPU9250_AK8963_SINGLE_MEASUREMENT = 0x11;
+    constexpr static const unsigned int MPU9250_AK8963_CONTINUOUS_MEASUREMENT = 0x16; //MODE 2
+    constexpr static const unsigned int MPU9250_AK8963_DATA_READY = (0x01);
+    constexpr static const unsigned int MPU9250_AK8963_DATA_OVERRUN = (0x02);
+    //constexpr static const unsigned int MPU9250_AK8963_OVERFLOW = (0x80);
+    constexpr static const unsigned int MPU9250_AK8963_OVERFLOW = (0x08);
+    constexpr static const unsigned int MPU9250_AK8963_DATA_ERROR = (0x40);
+    constexpr static const unsigned int MPU9250_AK8963_CNTL2_SRST = 0x01;
 #endif //1
 }
 #endif //_INV_IMU_HPP_

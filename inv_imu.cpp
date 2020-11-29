@@ -9,7 +9,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20602\t";
         rtv += "addr:";
-        rtv += std::to_string((int) addr);
+        rtv += std::to_string((int) i2cTransfer.slaveAddress);
         rtv += '\t';
         return rtv;
     }
@@ -187,13 +187,13 @@ namespace inv {
 
     bool icm20602_t::Detect() {
         uint8_t val = 0;
-        if (addrAutoDetect) { addr = 0x68; }
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x68; }
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x12 == val) {
             return true;
         }
         val = 0;
-        if (addrAutoDetect) { addr = 0x69; }
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x69; }
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x12 == val) {
             return true;
@@ -271,7 +271,9 @@ namespace inv {
         int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL, regs, 3);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_X_ACCEL,regs);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_Y_ACCEL,regs+1);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_Z_ACCEL,regs+2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -314,7 +316,9 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO, regs, 3);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_X_GYRO,regs);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_Y_GYRO,regs+1);
+        res |=ReadReg((uint8_t) icm20602_RegMap::SELF_TEST_Z_GYRO,regs+2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -383,11 +387,51 @@ namespace inv {
     }
 
     int icm20602_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)icm20602_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 14;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)icm20602_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 15;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
     int icm20602_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) icm20602_RegMap::ACCEL_XOUT_H, buf, 14);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)icm20602_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 14;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferNonBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)icm20602_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 15;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferNonBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
     int icm20602_t::Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
@@ -482,7 +526,11 @@ namespace inv {
 
         //开始计算自检结果
         uint8_t regs[4];
-        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::SELF_TEST_X, regs, 4);
+
+        res |=ReadReg((uint8_t) mpu6050_RegMap::SELF_TEST_X,regs);
+        res |=ReadReg((uint8_t) mpu6050_RegMap::SELF_TEST_Y,regs+1);
+        res |=ReadReg((uint8_t) mpu6050_RegMap::SELF_TEST_Z,regs+2);
+        res |=ReadReg((uint8_t) mpu6050_RegMap::SELF_TEST_A,regs+3);
         int a_st[3];
         int g_st[3];
         int ft_a[3];
@@ -551,7 +599,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:mpu6050\t";
         rtv += "addr:";
-        rtv += std::to_string((int) addr);
+        rtv += std::to_string((int) i2cTransfer.slaveAddress);
         rtv += '\t';
         return rtv;
     }
@@ -694,13 +742,13 @@ namespace inv {
     }
     bool mpu6050_t::Detect() {
         uint8_t val = 0;
-        if (addrAutoDetect) { addr = 0x68; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x68; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x68 == val) {
             return true;
         }
         val = 0;
-        if (addrAutoDetect) { addr = 0x69; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x69; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x68 == val) {
             return true;
@@ -719,11 +767,19 @@ namespace inv {
     }
 
     int mpu6050_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
+        i2cTransfer.direction = I2C::transfer::Read;
+        i2cTransfer.subAddress = (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H;
+        i2cTransfer.data = buf;
+        i2cTransfer.dataSize =14;
+        return i2c->masterTransferBlocking(i2cTransfer);
     }
 
     int mpu6050_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H, buf, 14);
+        i2cTransfer.direction = I2C::transfer::Read;
+        i2cTransfer.subAddress = (uint8_t) mpu6050_RegMap::ACCEL_XOUT_H;
+        i2cTransfer.data = buf;
+        i2cTransfer.dataSize =14;
+        return i2c->masterTransferNonBlocking(i2cTransfer);
     }
 
     int mpu6050_t::Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
@@ -800,10 +856,10 @@ namespace inv {
         //配置陀螺仪量程和单位
         switch (cfg.gyroUnit) {
             case config_t::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                gyroUnit = (250.0 / 32768) * (M_PI / 180.0);
                 break;
             case config_t::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60 / 360);
+                gyroUnit = (250.0 / 32768) * (60.0 / 360.0);
                 break;
             case config_t::MPU_UNIT_DegPerSec:
             default:
@@ -962,7 +1018,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:mpu9250\t";
         rtv += "addr:";
-        rtv += std::to_string((int) addr);
+        rtv += std::to_string((int) i2cTransfer.slaveAddress);
         rtv += '\t';
 
         rtv += "magnetometer:ak8963\t";
@@ -1090,14 +1146,54 @@ namespace inv {
     }
 
     int mpu9250_t::ReadSensorBlocking() {
-        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)mpu9250_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 22;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)mpu9250_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 23;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
     int mpu9250_t::ReadSensorNonBlocking() {
-        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::ACCEL_XOUT_H, buf, 22);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)mpu9250_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 22;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferNonBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)mpu9250_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 23;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferNonBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
-    int mpu9250_t::SoftReset(void) {
+    int mpu9250_t::SoftReset() {
         if (!Detect()) { return -1; }
         int res = 0;
         uint8_t val;
@@ -1121,13 +1217,13 @@ namespace inv {
     }
     bool mpu9250_t::Detect() {
         uint8_t val = 0;
-        if (addrAutoDetect) { addr = 0x68; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x68; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x71 == val) {
             return true;
         }
         val = 0;
-        if (addrAutoDetect) { addr = 0x69; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x69; };
         ReadReg((uint8_t) mpu6050_RegMap::WHO_AM_I, &val);
         if (0x71 == val) {
             return true;
@@ -1204,7 +1300,10 @@ namespace inv {
         int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL, regs, 3);
+
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_X_ACCEL,regs);
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_Y_ACCEL,regs+1);
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_Z_ACCEL,regs+2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1247,7 +1346,9 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |= (*i2c.readBlocking)(i2c.context, addr, (uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO, regs, 3);
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_X_GYRO,regs);
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_Y_GYRO,regs+1);
+        res |=ReadReg((uint8_t) mpu9250_RegMap::SELF_TEST_Z_GYRO,regs+2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1302,20 +1403,20 @@ namespace inv {
 
         //恢复原来的配置
         res |= Init(backup_cfg);
-        return res | (gyro_result << 1) | accel_result;
+        return res | (gyro_result << 1u) | accel_result;
     }
 
     bool mpu9250_t::DataReady() {
         uint8_t val = 0;
         ReadReg((uint8_t) mpu9250_RegMap::INT_STATUS, &val);
-        return (val & 0x01) == 0x01;
+        return (val & 0x01u) == 0x01u;
     }
 
     int mpu9250_t::EnableDataReadyInt() {
         return ModifyReg((uint8_t) mpu9250_RegMap::INT_ENABLE, 0x01, 0x01);
     }
 
-    int imuPtr_t::Load(i2cInterface_t &_i2c, uint8_t _addr) {
+    int imuPtr_t::Load(I2C &_i2c, uint16_t _addr) {
         if (icm20602_t(_i2c, _addr).Detect()) {
             INV_TRACE("icm20602 detected");
             reset(new icm20602_t(_i2c, _addr));
@@ -1339,31 +1440,91 @@ namespace inv {
         }
         return -1;
     }
+    int imuPtr_t::Load(SPI &_spi) {
+        if (icm20602_t(_spi).Detect()) {
+            INV_TRACE("icm20602 detected");
+            reset(new icm20602_t(_spi));
+            return 0;
+        }  else if (mpu9250_t(_spi).Detect()) {
+            INV_TRACE("mpu9250 detected");
+            reset(new mpu9250_t(_spi));
+            return 0;
+        } else if (icm20600_t(_spi).Detect()) {
+            INV_TRACE("icm20600 detected");
+            reset(new icm20600_t(_spi));
+            return 0;
+        } else if (icm20948_t(_spi).Detect()) {
+            INV_TRACE("icm20948 detected");
+            reset(new icm20948_t(_spi));
+            return 0;
+        }
+        return -1;
+    }
 
-    int imu_t::WriteReg(uint8_t reg, const uint8_t val) {
-        int res = (*i2c.writeBlocking)(i2c.context, addr, reg, &val, 1);
-        if (res != 0) {
-            INV_DEBUG("i2c write return code = %d", res);
+    int imu_t::WriteReg(uint8_t reg, uint8_t val) {
+        int res = 0;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = reg;
+            i2cTransfer.data = &val;
+            i2cTransfer.dataSize = 1;
+            i2cTransfer.direction = I2C::transfer::Write;
+            res = i2c->masterTransferBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c write return code = %d", res);
+            }
+        } else {
+            uint8_t txb[2];
+            uint8_t rxb[2];
+            txb[0] = (reg & 0x7fU);
+            txb[1] = val;
+            spiTransfer.dataSize = 2;
+            spiTransfer.rxData = rxb;
+            spiTransfer.txData = txb;
+            res = spi->masterTransferBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi write return code = %d", res);
+            }
         }
         return res;
     }
 
     int imu_t::ReadReg(uint8_t reg, uint8_t *val) {
-        int res = (*i2c.readBlocking)(i2c.context, addr, reg, val, 1);
-        if (res != 0) {
-            INV_DEBUG("i2c read return code = %d", res);
+        int res = 0;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = reg;
+            i2cTransfer.data = val;
+            i2cTransfer.dataSize = 1;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            uint8_t txb[2];
+            uint8_t rxb[2];
+            txb[0] = (1U << 7U) | (reg & 0x7f);
+            spiTransfer.dataSize = 2;
+            spiTransfer.rxData = rxb;
+            spiTransfer.txData = txb;
+            res = spi->masterTransferBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }else{
+                *val = rxb[1];
+            }
+
         }
         return res;
     }
 
-    int imu_t::ModifyReg(uint8_t reg, const uint8_t val, const uint8_t mask) {
+    int imu_t::ModifyReg(uint8_t reg, uint8_t val, uint8_t mask) {
         uint8_t regVal;
         int res = 0;
         res |= ReadReg(reg, &regVal);
         res |= WriteRegVerified(reg, (regVal & (~mask)) | (val & mask));
         res |= ReadReg(reg, &regVal);
         if ((regVal & mask) != (val & mask)) {
-            INV_DEBUG("i2c rw error");
+            INV_DEBUG("imu rw error");
             res |= -1;
         }
         return res;
@@ -1378,28 +1539,31 @@ namespace inv {
             res |= WriteReg(reg, val);
             res |= ReadReg(reg, &regVal);
             if (res == 0 && val != regVal) {
-                INV_DEBUG("i2c rw error");
+                INV_DEBUG("imu  rw error");
                 res |= -1;
             }
         }
         return res;
     }
-    imu_t::imu_t(i2cInterface_t &_i2c, uint8_t _addr) : i2c(_i2c), isOpen(false), addr(_addr), cfg(config_t()) {
-        if (addr == SlaveAddressAutoDetect) {
+    imu_t::imu_t(I2C &_i2c, uint16_t _addr) : i2c(&_i2c), spi(nullptr), isOpen(false){
+        i2cTransfer.slaveAddress = _addr;
+        if (_addr == SlaveAddressAutoDetect) {
             addrAutoDetect = true;
         } else {
             addrAutoDetect = false;
         }
     }
+    imu_t::imu_t(SPI &_spi) : i2c(nullptr), spi(&_spi), isOpen(false), addrAutoDetect(false) {}
+    bool imu_t::IsOpen() { return isOpen; }
     bool icm20600_t::Detect() {
         uint8_t val = 0;
-        if (addrAutoDetect) { addr = 0x68; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x68; };
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x11 == val) {
             return true;
         }
         val = 0;
-        if (addrAutoDetect) { addr = 0x69; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x69; };
         ReadReg((uint8_t) icm20602_RegMap::WHO_AM_I, &val);
         if (0x11 == val) {
             return true;
@@ -1410,7 +1574,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20600\t";
         rtv += "addr:";
-        rtv += std::to_string((int) addr);
+        rtv += std::to_string((int) i2cTransfer.slaveAddress);
         rtv += '\t';
         return rtv;
     }
@@ -1440,14 +1604,14 @@ namespace inv {
     }
     bool icm20948_t::Detect() {
         uint8_t val = 0;
-        if (addrAutoDetect) { addr = 0x68; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x68; };
         SwitchBank(0);
         ReadReg((uint16_t) icm20948_RegMap::WHO_AM_I, &val);
         if (0xEA == val) {
             return true;
         }
         val = 0;
-        if (addrAutoDetect) { addr = 0x69; };
+        if (addrAutoDetect) { i2cTransfer.slaveAddress = 0x69; };
         SwitchBank(0);
         ReadReg((uint16_t) icm20948_RegMap::WHO_AM_I, &val);
         if (0xEA == val) {
@@ -1772,7 +1936,7 @@ namespace inv {
             }
         } else {
             accel_result = 1;
-            INV_DEBUG("accel[%d] st fail,otp_value=0",i);
+            INV_DEBUG("accel[%d] st fail,otp_value=0", i);
         }
 
         //计算陀螺仪自检结果
@@ -1792,7 +1956,7 @@ namespace inv {
         if (!otp_value_zero) {
             for (i = 0; i < 3; i++) {
                 st_shift_cust[i] = gyro_bias_st[i] - gyro_bias_regular[i];
-                if (st_shift_cust[i] < (st_shift_prod[i] >> 1)){
+                if (st_shift_cust[i] < (st_shift_prod[i] >> 1)) {
                     //陀螺仪自检未通过
                     accel_result = 1;
                     INV_DEBUG("gyro[%d] st fail,result = %f,ref:0.5<result<1.5", i, (float) st_shift_cust[i] / st_shift_prod[i]);
@@ -1802,7 +1966,7 @@ namespace inv {
             }
         } else {
             accel_result = 1;
-            INV_DEBUG("gyro[%d] st fail,otp_value=0",i);
+            INV_DEBUG("gyro[%d] st fail,otp_value=0", i);
         }
 
         //恢复原来的配置
@@ -1881,14 +2045,54 @@ namespace inv {
         if (bank != 0) {
             SwitchBank(0);
         }
-        return (*i2c.readBlocking)(i2c.context, addr, (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)icm20948_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 23;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)icm20948_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 24;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
     int icm20948_t::ReadSensorNonBlocking() {
         if (bank != 0) {
             SwitchBank(0);
         }
-        return (*i2c.readNonBlocking)(i2c.context, addr, (uint8_t) icm20948_RegMap::ACCEL_XOUT_H, buf, 14 + 9);
+        int res;
+        if (i2c != nullptr) {
+            i2cTransfer.subAddress = (uint8_t)icm20948_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.data = buf;
+            i2cTransfer.dataSize = 23;
+            i2cTransfer.direction = I2C::transfer::Read;
+            res = i2c->masterTransferNonBlocking(i2cTransfer);
+            if (res != 0) {
+                INV_DEBUG("i2c read return code = %d", res);
+            }
+        } else {
+            txbuf[0] = (1U << 7U) | ((uint8_t)icm20948_RegMap::ACCEL_XOUT_H & 0x7fU);
+            spiTransfer.dataSize = 24;
+            spiTransfer.rxData = rxbuf;
+            spiTransfer.txData = txbuf;
+            res = spi->masterTransferNonBlocking(spiTransfer);
+            if (res != 0) {
+                INV_DEBUG("spi read return code = %d", res);
+            }
+        }
+        return res;
     }
 
     int icm20948_t::Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
@@ -1948,7 +2152,7 @@ namespace inv {
         std::string rtv;
         rtv += "model:icm20948\t";
         rtv += "addr:";
-        rtv += std::to_string((int) addr);
+        rtv += std::to_string((int) i2cTransfer.slaveAddress);
         rtv += '\t';
 
         rtv += "magnetometer:ak09916\t";
