@@ -29,6 +29,4 @@ project(RemoteIIC)
 
 add_executable(RemoteIIC main.cpp remote_i2c.cpp remote_i2c.h smbus.cpp smbus.h
         inv_imu.hpp inv_imu.cpp
-        ahrs/ahrs.cpp
-        ahrs/ahrs.h
         )

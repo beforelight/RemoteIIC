@@ -7,7 +7,6 @@
 #include <functional>
 #include <utility>
 
-
 #if defined(__linux__) && !defined(INV_PRINTF)
 #include<cstdio>
 #define INV_PRINTF printf
@@ -32,94 +31,88 @@
 #endif //INV_NO_DEBUG
 
 namespace inv {
-
     class I2C {
     public:
-        struct transfer {
-            transfer() : slaveAddress(0), slaveAddressSize(1), subAddress(0), subAddressSize(1), data(nullptr), dataSize(0), direction(Write) {}
+        struct Transfer {
+            Transfer() : slaveAddress(0), slaveAddressSize(1), subAddress(0), subAddressSize(1), data(nullptr), dataSize(0), direction(Write) {}
             uint16_t slaveAddress;
             uint8_t slaveAddressSize;
             uint8_t subAddressSize;
             uint32_t subAddress;
             void *data;
             uint32_t dataSize;
-            enum _direction {
+            enum Direction {
                 Write = 0U, /*!< Master transmit. */
                 Read = 1U  /*!< Master receive. */
             } direction;
         };
-        std::function<int(const transfer &)> masterTransferBlocking;
-        std::function<int(const transfer &)> masterTransferNonBlocking;
-        I2C(std::function<int(const transfer &)> _masterTransferBlocking,
-            std::function<int(const transfer &)> _masterTransferNonBlocking)
+        std::function<int(const Transfer &)> masterTransferBlocking;
+        std::function<int(const Transfer &)> masterTransferNonBlocking;
+        I2C(std::function<int(const Transfer &)> _masterTransferBlocking,
+            std::function<int(const Transfer &)> _masterTransferNonBlocking)
                 : masterTransferBlocking(std::move(_masterTransferBlocking)),
                   masterTransferNonBlocking(std::move(_masterTransferNonBlocking)) {}
-        explicit I2C(const std::function<int(const transfer &)> &_masterTransferBlocking)
+        explicit I2C(const std::function<int(const Transfer &)> &_masterTransferBlocking)
                 : I2C(_masterTransferBlocking, _masterTransferBlocking) {}
     };
 
     class SPI {
     public:
-        struct transfer {
-            transfer() : txData(nullptr), rxData(nullptr), dataSize(0) {}
+        struct Transfer {
+            Transfer() : txData(nullptr), rxData(nullptr), dataSize(0) {}
             uint8_t *txData;          /*!< Send buffer. */
             uint8_t *rxData;          /*!< Receive buffer. */
             volatile uint32_t dataSize; /*!< Transfer bytes. */
         };
-        std::function<int(const transfer &)> masterTransferBlocking;
-        std::function<int(const transfer &)> masterTransferNonBlocking;
-        SPI(std::function<int(const transfer &)> _masterTransferBlocking,
-            std::function<int(const transfer &)> _masterTransferNonBlocking)
+        std::function<int(const Transfer &)> masterTransferBlocking;
+        std::function<int(const Transfer &)> masterTransferNonBlocking;
+        SPI(std::function<int(const Transfer &)> _masterTransferBlocking,
+            std::function<int(const Transfer &)> _masterTransferNonBlocking)
                 : masterTransferBlocking(std::move(_masterTransferBlocking)),
                   masterTransferNonBlocking(std::move(_masterTransferNonBlocking)) {}
-        explicit SPI(const std::function<int(const transfer &)> &_masterTransferBlocking)
+        explicit SPI(const std::function<int(const Transfer &)> &_masterTransferBlocking)
                 : SPI(_masterTransferBlocking, _masterTransferBlocking) {}
     };
 
-    struct config_t {
-        enum mpu_accel_fs {    // In the ACCEL_CONFIG (0x1C) register, the full scale select  bits are :
-            MPU_FS_2G = 0,    // 00 = 2G
-            MPU_FS_4G,        // 01 = 4
-            MPU_FS_8G,        // 10 = 8
-            MPU_FS_16G,        // 11 = 16
-            NUM_MPU_AFS
+    struct Config {
+        enum mpu_accel_fs {
+            MPU_FS_2G = 0,
+            MPU_FS_4G,
+            MPU_FS_8G,
+            MPU_FS_16G,
         } accelFullScale;
 
-        /** @brief Allowed value for accel DLPF bandwidth (ACCEL_CONFIG2 (0x1D) register) */
-        enum mpu_accel_bw {        // In the ACCEL_CONFIG2 (0x1D) register, the BW setting bits are :
-            MPU_ABW_218 = 1,    ///< 001 = 218 Hz
-            MPU_ABW_99,            ///< 010 = 99 Hz
-            MPU_ABW_45,            ///< 011 = 45 Hz
-            MPU_ABW_21,            ///< 100 = 21 Hz
-            MPU_ABW_10,            ///< 101 = 10 Hz
-            MPU_ABW_5,            ///< 110 = 5 Hz
-            MPU_ABW_420,        ///< 111 = 420 Hz
+        enum mpu_accel_bw {
+            MPU_ABW_218 = 1,
+            MPU_ABW_99,
+            MPU_ABW_45,
+            MPU_ABW_21,
+            MPU_ABW_10,
+            MPU_ABW_5,
+            MPU_ABW_420,
             NUM_MPU_ABW
         } accelBandwidth;
 
-        enum mpu_gyro_fs {        // In the GYRO_CONFIG register, the fS_SEL bits are :
-            MPU_FS_250dps = 0,    // 00 = 250
-            MPU_FS_500dps,        // 01 = 500
-            MPU_FS_1000dps,        // 10 = 1000
-            MPU_FS_2000dps,        // 11 = 2000
-            NUM_MPU_GFS
+        enum mpu_gyro_fs {
+            MPU_FS_250dps = 0,
+            MPU_FS_500dps,
+            MPU_FS_1000dps,
+            MPU_FS_2000dps,
         } gyroFullScale;
 
-        /** @brief Allowed value for gyro DLPF bandwidth (CONFIG (0x1A) register) */
-        enum mpu_gyro_bw {   // In the CONFIG register, the  BW setting bits are :
-            MPU_GBW_250 = 0, ///< 000 = 250 Hz
-            MPU_GBW_176 = 1, ///< 001 = 176 Hz
-            MPU_GBW_92,         ///< 010 = 92 Hz
-            MPU_GBW_41,         ///< 011 = 41 Hz
-            MPU_GBW_20,         ///< 100 = 20 Hz
-            MPU_GBW_10,         ///< 101 = 10 Hz
-            MPU_GBW_5,         ///< 110 = 5 Hz
-            NUM_MPU_GBW
+        enum mpu_gyro_bw {
+            MPU_GBW_250 = 0,
+            MPU_GBW_176,
+            MPU_GBW_92,
+            MPU_GBW_41,
+            MPU_GBW_20,
+            MPU_GBW_10,
+            MPU_GBW_5,
         } gyroBandwidth;
 
         enum mpu_gyro_unit {
             MPU_UNIT_DegPerSec = 0,
-            MPU_UNIT_RadPerSec = 1,
+            MPU_UNIT_RadPerSec,
             MPU_UNIT_RevolutionsPerMinute,
         } gyroUnit;
 
@@ -129,19 +122,19 @@ namespace inv {
             MPU_UNIT_mG
         } accelUnit;
 
-        explicit config_t(mpu_accel_fs _accel_fs = MPU_FS_8G, mpu_accel_bw _accel_bw = MPU_ABW_99,
-                 mpu_accel_unit mpuAccelUnit = MPU_UNIT_MetersPerSquareSecond,
-                 mpu_gyro_fs _gyro_gs = MPU_FS_2000dps, mpu_gyro_bw _gyro_bw = MPU_GBW_92,
-                 mpu_gyro_unit mpuGyroUnit = MPU_UNIT_DegPerSec)
+        explicit Config(mpu_accel_fs _accel_fs = MPU_FS_8G, mpu_accel_bw _accel_bw = MPU_ABW_99,
+                        mpu_accel_unit mpuAccelUnit = MPU_UNIT_MetersPerSquareSecond,
+                        mpu_gyro_fs _gyro_gs = MPU_FS_2000dps, mpu_gyro_bw _gyro_bw = MPU_GBW_92,
+                        mpu_gyro_unit mpuGyroUnit = MPU_UNIT_DegPerSec)
                 : accelFullScale(_accel_fs), accelBandwidth(_accel_bw), accelUnit(mpuAccelUnit),
                   gyroFullScale(_gyro_gs), gyroBandwidth(_gyro_bw), gyroUnit(mpuGyroUnit) {}
     };
 
 
-    class imu_t {
+    class IMU {
     public:
-        virtual ~imu_t() {}
-        virtual int Init(config_t _cfg = config_t()) = 0;
+        virtual ~IMU() {}
+        virtual int Init(Config _cfg = Config()) = 0;
         virtual bool Detect() = 0;
         virtual int SelfTest() = 0;
         virtual std::string Report() = 0;
@@ -158,8 +151,8 @@ namespace inv {
         virtual bool IsOpen();
     public:
         static constexpr const uint16_t SlaveAddressAutoDetect = 0;
-        explicit imu_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect);
-        explicit imu_t(SPI &_spi);
+        explicit IMU(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect);
+        explicit IMU(SPI &_spi);
         int WriteReg(uint8_t reg, uint8_t val);
         int WriteRegVerified(uint8_t reg, uint8_t val);
         int ReadReg(uint8_t reg, uint8_t *val);
@@ -167,19 +160,19 @@ namespace inv {
     protected:
         I2C *i2c;
         SPI *spi;
-        I2C::transfer i2cTransfer;
-        SPI::transfer spiTransfer;
+        I2C::Transfer i2cTransfer;
+        SPI::Transfer spiTransfer;
         bool addrAutoDetect;
         bool isOpen;
-        config_t cfg;
+        Config cfg;
     };
 
-    class mpu6050_t : public imu_t {
+    class MPU6050 : public IMU {
     public:
-        ~mpu6050_t() {}
-        mpu6050_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr) {}
+        ~MPU6050() {}
+        MPU6050(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr) {}
 
-        int Init(config_t _cfg = config_t()) override;
+        int Init(Config _cfg = Config()) override;
         bool Detect() override;
         int SelfTest() override;
         std::string Report() override;
@@ -195,17 +188,17 @@ namespace inv {
         int Convert(float *temp) override;
 
     private:
-        float gyroUnit{};
-        float accelUnit{};
-        uint8_t buf[14]{};
+        float gyroUnit;
+        float accelUnit;
+        uint8_t buf[14];
     };
 
-    class icm20602_t : public imu_t {
+    class ICM20602 : public IMU {
     public:
-        virtual ~icm20602_t() {}
-        icm20602_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1) {}
-        icm20602_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1) {}
-        int Init(config_t _cfg = config_t()) override;
+        virtual ~ICM20602() {}
+        ICM20602(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr), buf(rxbuf + 1) {}
+        ICM20602(SPI &_spi) : IMU(_spi), buf(rxbuf + 1) {}
+        int Init(Config _cfg = Config()) override;
         bool Detect() override;
         int SelfTest() override;
         std::string Report() override;
@@ -227,24 +220,24 @@ namespace inv {
         uint8_t rxbuf[15];
     };
 
-    class icm20600_t : public icm20602_t {
+    class ICM20600 : public ICM20602 {
     public:
     public:
-        virtual ~icm20600_t() {}
-        icm20600_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : icm20602_t(_i2c, _addr) {}
-        icm20600_t(SPI &_spi) : icm20602_t(_spi) {}
+        virtual ~ICM20600() {}
+        ICM20600(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : ICM20602(_i2c, _addr) {}
+        ICM20600(SPI &_spi) : ICM20602(_spi) {}
         bool Detect() override;
         std::string Report() override;
     };
 
-    class mpu9250_t : public imu_t {
+    class MPU9250 : public IMU {
     public:
-        virtual ~mpu9250_t() {}
+        virtual ~MPU9250() {}
 
-        mpu9250_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1) {}
-        mpu9250_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1) {}
+        MPU9250(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr), buf(rxbuf + 1) {}
+        MPU9250(SPI &_spi) : IMU(_spi), buf(rxbuf + 1) {}
 
-        int Init(config_t _cfg = config_t()) override;
+        int Init(Config _cfg = Config()) override;
         bool Detect() override;
         int SelfTest() override;
         std::string Report() override;
@@ -273,13 +266,12 @@ namespace inv {
         float ak8963Asa[3];
     };
 
-    class icm20948_t : public imu_t {
+    class ICM20948 : public IMU {
     public:
-        ~icm20948_t() {}
-        icm20948_t(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : imu_t(_i2c, _addr), buf(rxbuf + 1), bank(0) {}
-        icm20948_t(SPI &_spi) : imu_t(_spi), buf(rxbuf + 1), bank(0) {}
-
-        int Init(config_t _cfg = config_t()) override;
+        ~ICM20948() {}
+        ICM20948(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr), buf(rxbuf + 1), bank(0) {}
+        ICM20948(SPI &_spi) : IMU(_spi), buf(rxbuf + 1), bank(0) {}
+        int Init(Config _cfg = Config()) override;
         bool Detect() override;
         int SelfTest() override;
         std::string Report() override;
@@ -314,14 +306,14 @@ namespace inv {
     };
 
 
-    class imuPtr_t : public std::shared_ptr<imu_t> {
+    class IMU_Ptr : public std::shared_ptr<IMU> {
     public:
-        int Load(I2C &_i2c, uint16_t _addr = imu_t::SlaveAddressAutoDetect);
+        int Load(I2C &_i2c, uint16_t _addr = IMU::SlaveAddressAutoDetect);
         int Load(SPI &_spi);
     };
 
 #if 1
-    enum class icm20602_RegMap : uint8_t {
+    enum class ICM20602_RegMap : uint8_t {
         XG_OFFS_TC_H = 0x4,            // READ/ WRITE
         XG_OFFS_TC_L = 0x5,            // READ/ WRITE
         YG_OFFS_TC_H = 0x7,            // READ/ WRITE
@@ -390,7 +382,7 @@ namespace inv {
     };
 
 
-    enum class mpu6050_RegMap : uint8_t {
+    enum class MPU6050_RegMap : uint8_t {
         SELF_TEST_X = 0x0D,             //R/W
         SELF_TEST_Y = 0x0E,             //R/W
         SELF_TEST_Z = 0x0F,             //R/W
@@ -475,7 +467,7 @@ namespace inv {
         WHO_AM_I = 0x75,             //R
     };
 
-    enum class mpu9250_RegMap : uint8_t {
+    enum class MPU9250_RegMap : uint8_t {
         SELF_TEST_X_GYRO = 0x0,//R/W
         SELF_TEST_Y_GYRO = 0x1,//R/W
         SELF_TEST_Z_GYRO = 0x2,//R/W
@@ -578,7 +570,7 @@ namespace inv {
         ZA_OFFSET_L = 0x7E,//R/W
     };
 
-    enum class ak8963_RegMap : uint8_t {
+    enum class AK8963_RegMap : uint8_t {
         //Magnetometer register maps
         WIA = 0x00,
         INFO = 0x01,
@@ -602,7 +594,7 @@ namespace inv {
         ASAZ = 0x12,
     };
 
-    enum class ak09916_RegMap : uint8_t {
+    enum class AK09916_RegMap : uint8_t {
         //Magnetometer register maps
         WIA2 = 0x01,
         ST1 = 0x10,
@@ -619,7 +611,7 @@ namespace inv {
         TS2 = 0x34, //DO NOT ACCESS
     };
 
-    enum class icm20948_RegMap : uint16_t {
+    enum class ICM20948_RegMap : uint16_t {
         WHO_AM_I = 0x0,//0      R
         USER_CTRL = 0x3,//3      R/W
         LP_CONFIG = 0x5,//5      R/W

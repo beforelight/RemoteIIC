@@ -5,19 +5,14 @@
 #include <cmath>
 using namespace std;
 
-int remote_i2c_read(void *context,
-                    uint8_t addr, uint8_t reg,
-                    uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Read(addr, reg, val, len);
-}
-
-int remote_i2c_write(void *context,
-                     uint8_t addr, uint8_t reg,
-                     const uint8_t *val, unsigned int len) {
-    return static_cast<remote_i2c *>(context)->Write(addr, reg, val, len);
-}
 remote_i2c iic("/dev/i2c-1");
-inv::i2cInterface_t my_i2c(&iic, remote_i2c_read, remote_i2c_write);
+inv::I2C my_i2c([](const inv::I2C::Transfer& tf){
+    if(tf.direction == inv::I2C::Transfer::Write){
+        return iic.Write(tf.slaveAddress,tf.subAddress,(unsigned char*) tf.data,tf.dataSize);
+    }else{
+        return iic.Read(tf.slaveAddress,tf.subAddress,(unsigned char*) tf.data,tf.dataSize);
+    }
+});
 
 float acc[3] = {0, 0, 0};
 float gyro[3] = {0, 0, 0};
@@ -47,13 +42,13 @@ int imu_invensense_example(int argc, const char **argv) {
     uint32_t times = 0;
     uint32_t dt = 10;
     int nost = 0;
-    inv::imuPtr_t my_imu;
-    std::map<std::string, inv::imuPtr_t> map_imu;
-    map_imu["mpu6050"].reset(new inv::mpu6050_t(my_i2c));
-    map_imu["mpu9250"].reset(new inv::mpu9250_t(my_i2c));
-    map_imu["icm20602"].reset(new inv::icm20602_t(my_i2c));
-    map_imu["icm20600"].reset(new inv::icm20600_t(my_i2c));
-    map_imu["icm20948"].reset(new inv::icm20948_t(my_i2c));
+    inv::IMU_Ptr my_imu;
+    std::map<std::string, inv::IMU_Ptr> map_imu;
+    map_imu["mpu6050"].reset(new inv::MPU6050(my_i2c));
+    map_imu["mpu9250"].reset(new inv::MPU9250(my_i2c));
+    map_imu["icm20602"].reset(new inv::ICM20602(my_i2c));
+    map_imu["icm20600"].reset(new inv::ICM20600(my_i2c));
+    map_imu["icm20948"].reset(new inv::ICM20948(my_i2c));
 
     for (int i = 0; i < argc; ++i) {
         if (strcmp(argv[i], "-m") == 0) {
@@ -142,7 +137,7 @@ int imu_invensense_example(int argc, const char **argv) {
 
 
 int example1(int argc, const char **argv) {
-    inv::imuPtr_t my_imu;
+    inv::IMU_Ptr my_imu;
     if (0 == my_imu.Load(my_i2c)) {
         if (my_imu->Init() == 0) {
             //自检时保持静止，否则会直接失败
@@ -170,7 +165,7 @@ int example1(int argc, const char **argv) {
 }
 
 int example2(int argc, const char **argv) {
-    inv::mpu6050_t my_imu(my_i2c);
+    inv::MPU6050 my_imu(my_i2c);
     if (true == my_imu.Detect()) {
         if (my_imu.Init() == 0) {
             //自检时保持静止，否则会直接失败
