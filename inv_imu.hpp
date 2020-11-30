@@ -6,7 +6,7 @@
 #include <memory>
 #include <functional>
 #include <utility>
-
+#include <vector>
 #if defined(__linux__) && !defined(INV_PRINTF)
 #include<cstdio>
 #define INV_PRINTF printf
@@ -34,7 +34,7 @@ namespace inv {
     class I2C {
     public:
         struct Transfer {
-            Transfer() : slaveAddress(0), slaveAddressSize(1), subAddress(0), subAddressSize(1), data(nullptr), dataSize(0), direction(Write) {}
+            Transfer() : slaveAddress(0), slaveAddressSize(1), subAddressSize(1), subAddress(0), data(nullptr), dataSize(0), direction(Write) {}
             uint16_t slaveAddress;
             uint8_t slaveAddressSize;
             uint8_t subAddressSize;
@@ -127,8 +127,8 @@ namespace inv {
                         mpu_accel_unit mpuAccelUnit = MPU_UNIT_MetersPerSquareSecond,
                         mpu_gyro_fs _gyro_gs = MPU_FS_2000dps, mpu_gyro_bw _gyro_bw = MPU_GBW_92,
                         mpu_gyro_unit mpuGyroUnit = MPU_UNIT_DegPerSec)
-                : accelFullScale(_accel_fs), accelBandwidth(_accel_bw), accelUnit(mpuAccelUnit),
-                  gyroFullScale(_gyro_gs), gyroBandwidth(_gyro_bw), gyroUnit(mpuGyroUnit) {}
+                : accelFullScale(_accel_fs), accelBandwidth(_accel_bw),
+                  gyroFullScale(_gyro_gs), gyroBandwidth(_gyro_bw), gyroUnit(mpuGyroUnit), accelUnit(mpuAccelUnit) {}
     };
 
 
@@ -270,8 +270,8 @@ namespace inv {
     class ICM20948 : public IMU {
     public:
         ~ICM20948() {}
-        ICM20948(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr), buf(rxbuf + 1), bank(0) {}
-        ICM20948(SPI &_spi) : IMU(_spi), buf(rxbuf + 1), bank(0) {}
+        ICM20948(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr), bank(0), buf(rxbuf + 1) {}
+        ICM20948(SPI &_spi) : IMU(_spi), bank(0), buf(rxbuf + 1) {}
         int Init(Config _cfg = Config()) override;
         bool Detect() override;
         int SelfTest() override;

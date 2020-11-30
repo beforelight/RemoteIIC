@@ -2,9 +2,113 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <cfloat>
+#include <initializer_list>
 #include"inv_imu.hpp"
 
+
 namespace inv {
+    template<typename Val = int>
+    class WeakMap {
+    private:
+        std::vector<float> key;
+        std::vector<Val> val;
+    public:
+        WeakMap() = default;
+        WeakMap(const std::initializer_list<std::pair<float, Val> > &list) : WeakMap() {
+            for (auto i:list) {
+                key.push_back(i.first);
+                val.push_back(i.second);
+            }
+        }
+        void Insert(float _key, Val _val) {
+            key.push_back(_key);
+            val.push_back(_val);
+        }
+        const Val &operator[](float _key) const {
+            int n = 0;
+            float distance = FLT_MAX;
+            float buf;
+            for (int i = 0; i < key.size(); ++i) {
+                buf = key[i] - _key;
+                buf *= buf;
+                if (buf < distance) {
+                    distance = buf;
+                    n = i;
+                }
+            }
+            return val[n];
+        }
+    };
+
+    const WeakMap<int> MPU_ACCEL_FS_MAP({
+                                                {Config::MPU_FS_2G,  0},
+                                                {Config::MPU_FS_4G,  1},
+                                                {Config::MPU_FS_8G,  2},
+                                                {Config::MPU_FS_16G, 3}
+                                        });
+    const WeakMap<int> MPU_GYRO_FS_MAP({
+                                               {Config::MPU_FS_250dps,  0},
+                                               {Config::MPU_FS_500dps,  1},
+                                               {Config::MPU_FS_1000dps, 2},
+                                               {Config::MPU_FS_2000dps, 3}
+                                       });
+    const WeakMap<float> MPU_ACCEL_UNIT_IN_G({
+                                                     {Config::MPU_FS_2G,  2.0 / 32768.0},
+                                                     {Config::MPU_FS_4G,  4.0 / 32768.0},
+                                                     {Config::MPU_FS_8G,  8.0 / 32768.0},
+                                                     {Config::MPU_FS_16G, 16.0 / 32768.0}
+                                             });
+    const WeakMap<float> MPU_GYRO_UNIT_IN_DPS({
+                                                      {Config::MPU_FS_250dps,  250.0 / 32768.0},
+                                                      {Config::MPU_FS_500dps,  500.0 / 32768.0},
+                                                      {Config::MPU_FS_1000dps, 1000.0 / 32768.0},
+                                                      {Config::MPU_FS_2000dps, 2000.0 / 32768.0}
+                                              });
+    const WeakMap<float> MPU_ACCEL_UNIT_FROM_G({
+                                                       {Config::MPU_UNIT_MetersPerSquareSecond, 9.8},
+                                                       {Config::MPU_UNIT_G,                     1.0},
+                                                       {Config::MPU_UNIT_mG,                    1000.0}
+                                               });
+    const WeakMap<float> MPU_GYRO_UNIT_FROM_DPS({
+                                                        {Config::MPU_UNIT_DegPerSec,            1.0},
+                                                        {Config::MPU_UNIT_RadPerSec, M_PI / 180.0},
+                                                        {Config::MPU_UNIT_RevolutionsPerMinute, 60.0 / 360.0},
+                                                });
+    const WeakMap<int> MPU9250_GBW_MAP({
+                                               {250, 0},
+                                               {184, 1},
+                                               {92,  2},
+                                               {41,  3},
+                                               {20,  4},
+                                               {10,  5},
+                                               {5,   6}
+                                       });
+    const WeakMap<int> MPU9250_ABW_MAP({
+                                               {218.1, 1},
+                                               {99,    2},
+                                               {44.8,  3},
+                                               {21.2,  4},
+                                               {10.2,  5},
+                                               {5.05,  6},
+                                               {420,   7}
+                                       });
+    const WeakMap<int> &MPU6050_GBW_MAP = MPU9250_GBW_MAP;
+    const WeakMap<int> &ICM20602_GBW_MAP = MPU9250_GBW_MAP;
+    const WeakMap<int> &ICM20602_ABW_MAP = MPU9250_ABW_MAP;
+    const WeakMap<int> ICM20948_GBW_MAP({
+                                                {196.6, 0},
+                                                {151.8, 1},
+                                                {119.5, 2},
+                                                {51.2,  3},
+                                                {23.9,  4},
+                                                {11.6,  5},
+                                                {5.7,   6},
+                                                {361.4, 7}
+                                        });
+    const WeakMap<int> &ICM20948_ABW_MAP = MPU9250_ABW_MAP;
+
+
     std::string ICM20602::Report() {
         std::string rtv;
         rtv += "model:icm20602\t";
@@ -57,122 +161,18 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) ICM20602_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (cfg.gyroBandwidth) {
-            case Config::MPU_GBW_361:
-            case Config::MPU_GBW_250:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 0);
-                break;
-            case Config::MPU_GBW_176:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 1);
-                break;
-            case Config::MPU_GBW_92:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 2);
-                break;
-            case Config::MPU_GBW_41:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 3);
-                break;
-            case Config::MPU_GBW_20:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 4);
-                break;
-            case Config::MPU_GBW_10:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 5);
-                break;
-            case Config::MPU_GBW_5:
-            default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 6);
-                break;
-        }
+        res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, ICM20948_GBW_MAP[cfg.gyroBandwidth]);
 
         //配置陀螺仪量程和单位
-        switch (cfg.gyroUnit) {
-            case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
-                break;
-            case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
-                break;
-            case Config::MPU_UNIT_DegPerSec:
-            default:
-                gyroUnit = 250.0 / 32768.0;
-                break;
-        }
-        switch (cfg.gyroFullScale) {
-            case Config::MPU_FS_125dps:
-            case Config::MPU_FS_250dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 0 << 3u);
-                break;
-            case Config::MPU_FS_500dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 1 << 3u);
-                gyroUnit *= 2.0;
-                break;
-            case Config::MPU_FS_1000dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 2 << 3u);
-                gyroUnit *= 4.0;
-                break;
-            case Config::MPU_FS_2000dps:
-            default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 3 << 3u);
-                gyroUnit *= 8.0;
-                break;
-        }
+        gyroUnit = MPU_GYRO_UNIT_IN_DPS[cfg.gyroFullScale] * MPU_GYRO_UNIT_FROM_DPS[cfg.gyroUnit];
+        res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, MPU_GYRO_FS_MAP[cfg.gyroFullScale] << 3u);
 
         //配置加速度计量程和单位
-        switch (cfg.accelUnit) {
-            case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_MetersPerSquareSecond:
-            default:
-                accelUnit = 2.0 * 9.8 / 32768.0;
-                break;
-        }
-        switch (cfg.accelFullScale) {
-            case Config::MPU_FS_2G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 0 << 3u);
-                break;
-            case Config::MPU_FS_4G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 1 << 3u);
-                accelUnit *= 2.0;
-                break;
-            case Config::MPU_FS_8G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 2 << 3u);
-                accelUnit *= 4.0;
-                break;
-            case Config::MPU_FS_16G:
-            default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 3 << 3u);
-                accelUnit *= 8.0;
-                break;
-        }
+        accelUnit = MPU_ACCEL_UNIT_IN_G[cfg.accelFullScale] * MPU_ACCEL_UNIT_FROM_G[cfg.accelUnit];
+        res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, MPU_ACCEL_FS_MAP[cfg.accelFullScale] << 3u);
 
         //配置加速度计lpf
-        switch (cfg.accelBandwidth) {
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 7);
-                break;
-            case Config::MPU_ABW_218:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 1);
-                break;
-            case Config::MPU_ABW_99:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 2);
-                break;
-            case Config::MPU_ABW_45:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 3);
-                break;
-            case Config::MPU_ABW_21:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 4);
-                break;
-            case Config::MPU_ABW_10:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 5);
-                break;
-            case Config::MPU_ABW_5:
-            default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 6);
-                break;
-        }
+        res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, ICM20602_ABW_MAP[cfg.accelBandwidth]);
 
         //开启数据更新中断
         res |= EnableDataReadyInt();
@@ -269,9 +269,9 @@ namespace inv {
         int st_shift_prod[3], st_shift_cust[3], st_shift_ratio[3], i;
 //    int result;
 
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_X_ACCEL, regs);
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Y_ACCEL, regs + 1);
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Z_ACCEL, regs + 2);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_X_ACCEL, regs);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Y_ACCEL, regs + 1);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Z_ACCEL, regs + 2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -314,9 +314,9 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_X_GYRO, regs);
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Y_GYRO, regs + 1);
-        res |=ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Z_GYRO, regs + 2);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_X_GYRO, regs);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Y_GYRO, regs + 1);
+        res |= ReadReg((uint8_t) ICM20602_RegMap::SELF_TEST_Z_GYRO, regs + 2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -387,7 +387,7 @@ namespace inv {
     int ICM20602::ReadSensorBlocking() {
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)ICM20602_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) ICM20602_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 14;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -396,7 +396,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)ICM20602_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) ICM20602_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 15;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
@@ -411,7 +411,7 @@ namespace inv {
     int ICM20602::ReadSensorNonBlocking() {
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)ICM20602_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) ICM20602_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 14;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -420,7 +420,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)ICM20602_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) ICM20602_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 15;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
@@ -525,10 +525,10 @@ namespace inv {
         //开始计算自检结果
         uint8_t regs[4];
 
-        res |=ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_X, regs);
-        res |=ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_Y, regs + 1);
-        res |=ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_Z, regs + 2);
-        res |=ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_A, regs + 3);
+        res |= ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_X, regs);
+        res |= ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_Y, regs + 1);
+        res |= ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_Z, regs + 2);
+        res |= ReadReg((uint8_t) MPU6050_RegMap::SELF_TEST_A, regs + 3);
         int a_st[3];
         int g_st[3];
         int ft_a[3];
@@ -639,96 +639,15 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) MPU6050_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (cfg.gyroBandwidth) {
-            case Config::MPU_GBW_361:
-            case Config::MPU_GBW_250:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 0);
-                break;
-            case Config::MPU_GBW_176:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 1);
-                break;
-            case Config::MPU_GBW_92:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 2);
-                break;
-            case Config::MPU_GBW_41:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 3);
-                break;
-            case Config::MPU_GBW_20:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 4);
-                break;
-            case Config::MPU_GBW_10:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 5);
-                break;
-            case Config::MPU_GBW_5:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 6);
-                break;
-        }
+        res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, MPU6050_GBW_MAP[cfg.gyroBandwidth]);
 
         //配置陀螺仪量程和单位
-        switch (cfg.gyroUnit) {
-            case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
-                break;
-            case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
-                break;
-            case Config::MPU_UNIT_DegPerSec:
-            default:
-                gyroUnit = 250.0 / 32768.0;
-                break;
-        }
-        switch (cfg.gyroFullScale) {
-            case Config::MPU_FS_125dps:
-            case Config::MPU_FS_250dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 0 << 3u);
-                break;
-            case Config::MPU_FS_500dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 1 << 3u);
-                gyroUnit *= 2.0;
-                break;
-            case Config::MPU_FS_1000dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 2 << 3u);
-                gyroUnit *= 4.0;
-                break;
-            case Config::MPU_FS_2000dps:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 3 << 3u);
-                gyroUnit *= 8.0;
-                break;
-        }
+        gyroUnit = MPU_GYRO_UNIT_IN_DPS[cfg.gyroFullScale] * MPU_GYRO_UNIT_FROM_DPS[cfg.gyroUnit];
+        res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, MPU_GYRO_FS_MAP[cfg.gyroFullScale] << 3u);
 
         //配置加速度计量程和单位
-        switch (cfg.accelUnit) {
-            case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_MetersPerSquareSecond:
-            default:
-                accelUnit = 2.0 * 9.8 / 32768.0;
-                break;
-        }
-        switch (cfg.accelFullScale) {
-            case Config::MPU_FS_2G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 0 << 3u);
-                break;
-            case Config::MPU_FS_4G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 1 << 3u);
-                accelUnit *= 2;
-                break;
-            case Config::MPU_FS_8G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 2 << 3u);
-                accelUnit *= 4;
-                break;
-            case Config::MPU_FS_16G:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 3 << 3u);
-                accelUnit *= 8;
-                break;
-        }
+        accelUnit = MPU_ACCEL_UNIT_IN_G[cfg.accelFullScale] * MPU_ACCEL_UNIT_FROM_G[cfg.accelUnit];
+        res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, MPU_ACCEL_FS_MAP[cfg.accelFullScale] << 3u);
 
         //开启数据更新中断
         res |= EnableDataReadyInt();
@@ -768,7 +687,7 @@ namespace inv {
         i2cTransfer.direction = I2C::Transfer::Read;
         i2cTransfer.subAddress = (uint8_t) MPU6050_RegMap::ACCEL_XOUT_H;
         i2cTransfer.data = buf;
-        i2cTransfer.dataSize =14;
+        i2cTransfer.dataSize = 14;
         return i2c->masterTransferBlocking(i2cTransfer);
     }
 
@@ -776,7 +695,7 @@ namespace inv {
         i2cTransfer.direction = I2C::Transfer::Read;
         i2cTransfer.subAddress = (uint8_t) MPU6050_RegMap::ACCEL_XOUT_H;
         i2cTransfer.data = buf;
-        i2cTransfer.dataSize =14;
+        i2cTransfer.dataSize = 14;
         return i2c->masterTransferNonBlocking(i2cTransfer);
     }
 
@@ -824,122 +743,18 @@ namespace inv {
         res |= WriteRegVerified((uint8_t) MPU9250_RegMap::SMPLRT_DIV, 0);
 
         //配置陀螺仪lpf
-        switch (cfg.gyroBandwidth) {
-            case Config::MPU_GBW_361:
-            case Config::MPU_GBW_250:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 0);
-                break;
-            case Config::MPU_GBW_176:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 1);
-                break;
-            case Config::MPU_GBW_92:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 2);
-                break;
-            case Config::MPU_GBW_41:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 3);
-                break;
-            case Config::MPU_GBW_20:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 4);
-                break;
-            case Config::MPU_GBW_10:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 5);
-                break;
-            case Config::MPU_GBW_5:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 6);
-                break;
-        }
+        res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, MPU9250_GBW_MAP[cfg.gyroBandwidth]);
 
         //配置陀螺仪量程和单位
-        switch (cfg.gyroUnit) {
-            case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
-                break;
-            case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
-                break;
-            case Config::MPU_UNIT_DegPerSec:
-            default:
-                gyroUnit = 250.0 / 32768.0;
-                break;
-        }
-        switch (cfg.gyroFullScale) {
-            case Config::MPU_FS_125dps:
-            case Config::MPU_FS_250dps:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 0 << 3);
-                break;
-            case Config::MPU_FS_500dps:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit *= 2.0;
-                break;
-            case Config::MPU_FS_1000dps:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit *= 4.0;
-                break;
-            case Config::MPU_FS_2000dps:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit *= 8.0;
-                break;
-        }
+        gyroUnit = MPU_GYRO_UNIT_IN_DPS[cfg.gyroFullScale] * MPU_GYRO_UNIT_FROM_DPS[cfg.gyroUnit];
+        res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, MPU_GYRO_FS_MAP[cfg.gyroFullScale] << 3u);
 
         //配置加速度计量程和单位
-        switch (cfg.accelUnit) {
-            case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_MetersPerSquareSecond:
-            default:
-                accelUnit = 2.0 * 9.8 / 32768.0;
-                break;
-        }
-        switch (cfg.accelFullScale) {
-            case Config::MPU_FS_2G:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 0 << 3);
-                break;
-            case Config::MPU_FS_4G:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit *= 2.0;
-                break;
-            case Config::MPU_FS_8G:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit *= 4.0;
-                break;
-            case Config::MPU_FS_16G:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit *= 8.0;
-                break;
-        }
+        accelUnit = MPU_ACCEL_UNIT_IN_G[cfg.accelFullScale] * MPU_ACCEL_UNIT_FROM_G[cfg.accelUnit];
+        res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, MPU_ACCEL_FS_MAP[cfg.accelFullScale] << 3u);
 
         //配置加速度计lpf
-        switch (cfg.accelBandwidth) {
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 7);
-                break;
-            case Config::MPU_ABW_218:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 1);
-                break;
-            case Config::MPU_ABW_99:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 2);
-                break;
-            case Config::MPU_ABW_45:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 3);
-                break;
-            case Config::MPU_ABW_21:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 4);
-                break;
-            case Config::MPU_ABW_10:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 5);
-                break;
-            case Config::MPU_ABW_5:
-            default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 6);
-                break;
-        }
+        res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, MPU9250_ABW_MAP[cfg.accelBandwidth]);
 
         //开启数据更新中断
         res |= EnableDataReadyInt();
@@ -1144,7 +959,7 @@ namespace inv {
     int MPU9250::ReadSensorBlocking() {
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)MPU9250_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) MPU9250_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 22;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -1153,7 +968,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)MPU9250_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) MPU9250_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 23;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
@@ -1168,7 +983,7 @@ namespace inv {
     int MPU9250::ReadSensorNonBlocking() {
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)MPU9250_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) MPU9250_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 22;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -1177,7 +992,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)MPU9250_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) MPU9250_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 23;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
@@ -1297,9 +1112,9 @@ namespace inv {
 //    int result;
 
 
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_X_ACCEL, regs);
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Y_ACCEL, regs + 1);
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Z_ACCEL, regs + 2);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_X_ACCEL, regs);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Y_ACCEL, regs + 1);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Z_ACCEL, regs + 2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1342,9 +1157,9 @@ namespace inv {
         }
 
         //计算陀螺仪自检结果
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_X_GYRO, regs);
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Y_GYRO, regs + 1);
-        res |=ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Z_GYRO, regs + 2);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_X_GYRO, regs);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Y_GYRO, regs + 1);
+        res |= ReadReg((uint8_t) MPU9250_RegMap::SELF_TEST_Z_GYRO, regs + 2);
         for (i = 0; i < 3; i++) {
             if (regs[i] != 0) {
                 st_shift_prod[i] = sSelfTestEquation[regs[i] - 1];
@@ -1441,7 +1256,7 @@ namespace inv {
             INV_TRACE("icm20602 detected");
             reset(new ICM20602(_spi));
             return 0;
-        }  else if (MPU9250(_spi).Detect()) {
+        } else if (MPU9250(_spi).Detect()) {
             INV_TRACE("mpu9250 detected");
             reset(new MPU9250(_spi));
             return 0;
@@ -1505,7 +1320,7 @@ namespace inv {
             res = spi->masterTransferBlocking(spiTransfer);
             if (res != 0) {
                 INV_DEBUG("spi read return code = %d", res);
-            }else{
+            } else {
                 *val = rxb[1];
             }
 
@@ -1526,7 +1341,7 @@ namespace inv {
         return res;
     }
 
-    int IMU::WriteRegVerified(uint8_t reg, const uint8_t val) {
+    int IMU::WriteRegVerified(uint8_t reg, uint8_t val) {
         uint8_t regVal;
         int res = 0;
         res |= WriteReg(reg, val);
@@ -1541,7 +1356,7 @@ namespace inv {
         }
         return res;
     }
-    IMU::IMU(I2C &_i2c, uint16_t _addr) : i2c(&_i2c), spi(nullptr), isOpen(false){
+    IMU::IMU(I2C &_i2c, uint16_t _addr) : i2c(&_i2c), spi(nullptr), isOpen(false) {
         i2cTransfer.slaveAddress = _addr;
         if (_addr == SlaveAddressAutoDetect) {
             addrAutoDetect = true;
@@ -1549,7 +1364,7 @@ namespace inv {
             addrAutoDetect = false;
         }
     }
-    IMU::IMU(SPI &_spi) : i2c(nullptr), spi(&_spi), isOpen(false), addrAutoDetect(false) {}
+    IMU::IMU(SPI &_spi) : i2c(nullptr), spi(&_spi), addrAutoDetect(false), isOpen(false) {}
     bool IMU::IsOpen() { return isOpen; }
     bool ICM20600::Detect() {
         uint8_t val = 0;
@@ -1662,126 +1477,18 @@ namespace inv {
         res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_SMPLRT_DIV_2, 0);
 
         //配置陀螺仪lpf
-//        res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 0);
-        switch (cfg.gyroBandwidth) {
-            case Config::MPU_GBW_361:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (7 << 3));
-                break;
-            case Config::MPU_GBW_250:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (0 << 3));
-                break;
-            case Config::MPU_GBW_176:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (1 << 3));
-                break;
-            case Config::MPU_GBW_92:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (2 << 3));
-                break;
-            case Config::MPU_GBW_41:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (3 << 3));
-                break;
-            case Config::MPU_GBW_20:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (4 << 3));
-                break;
-            case Config::MPU_GBW_10:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (5 << 3));
-                break;
-            case Config::MPU_GBW_5:
-            default:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (6 << 3));
-                break;
-        }
+        res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (ICM20948_GBW_MAP[cfg.gyroBandwidth] << 3));
 
         //配置陀螺仪量程和单位
-        switch (cfg.gyroUnit) {
-            case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
-                break;
-            case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60.0 / 360.0);
-                break;
-            case Config::MPU_UNIT_DegPerSec:
-            default:
-                gyroUnit = 250.0 / 32768.0;
-                break;
-        }
-
-        switch (cfg.gyroFullScale) {
-            case Config::MPU_FS_125dps:
-            case Config::MPU_FS_250dps:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 0 << 1, 3 << 1);
-                break;
-            case Config::MPU_FS_500dps:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 << 1, 3 << 1);
-                gyroUnit *= 2.0;
-                break;
-            case Config::MPU_FS_1000dps:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 2 << 1, 3 << 1);
-                gyroUnit *= 4.0;
-                break;
-            case Config::MPU_FS_2000dps:
-            default:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 3 << 1, 3 << 1);
-                gyroUnit *= 8.0;
-                break;
-        }
+        gyroUnit = MPU_GYRO_UNIT_IN_DPS[cfg.gyroFullScale] * MPU_GYRO_UNIT_FROM_DPS[cfg.gyroUnit];
+        res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, MPU_GYRO_FS_MAP[cfg.gyroFullScale] << 1, 3 << 1);
 
         //配置加速度计lpf
-        switch (cfg.accelBandwidth) {
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (7 << 3));
-                break;
-            case Config::MPU_ABW_218:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (1 << 3));
-                break;
-            case Config::MPU_ABW_99:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (2 << 3));
-                break;
-            case Config::MPU_ABW_45:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (3 << 3));
-                break;
-            case Config::MPU_ABW_21:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (4 << 3));
-                break;
-            case Config::MPU_ABW_10:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (5 << 3));
-                break;
-            case Config::MPU_ABW_5:
-            default:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (6 << 3));
-                break;
-        }
+        res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (ICM20948_ABW_MAP[cfg.accelBandwidth] << 3));
 
         //配置加速度计量程和单位
-        switch (cfg.accelUnit) {
-            case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768.0);
-                break;
-            case Config::MPU_UNIT_MetersPerSquareSecond:
-            default:
-                accelUnit = 2.0 * 9.8 / 32768.0;
-                break;
-        }
-        switch (cfg.accelFullScale) {
-            case Config::MPU_FS_2G:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 0 << 1, 3 << 1);
-                break;
-            case Config::MPU_FS_4G:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 << 1, 3 << 1);
-                accelUnit *= 2.0;
-                break;
-            case Config::MPU_FS_8G:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 2 << 1, 3 << 1);
-                accelUnit *= 4.0;
-                break;
-            case Config::MPU_FS_16G:
-            default:
-                res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 3 << 1, 3 << 1);
-                accelUnit *= 8.0;
-                break;
-        }
+        accelUnit = MPU_ACCEL_UNIT_IN_G[cfg.accelFullScale] * MPU_ACCEL_UNIT_FROM_G[cfg.accelUnit];
+        res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, MPU_ACCEL_FS_MAP[cfg.accelFullScale] << 1, 3 << 1);
 
         //设置温度输出lpf
         res |= WriteRegVerified((uint16_t) ICM20948_RegMap::TEMP_CONFIG, 6); //8hz
@@ -1857,7 +1564,7 @@ namespace inv {
         int16_t gbuf[3];
         int accel_result = 0;
         int gyro_result = 0;
-        uint8_t val;
+//        uint8_t val;
         memset(gyro_bias_st, 0, sizeof(gyro_bias_st));
         memset(gyro_bias_regular, 0, sizeof(gyro_bias_regular));
         memset(accel_bias_st, 0, sizeof(accel_bias_st));
@@ -2043,7 +1750,7 @@ namespace inv {
         }
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)ICM20948_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) ICM20948_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 23;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -2052,7 +1759,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)ICM20948_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) ICM20948_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 24;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
@@ -2070,7 +1777,7 @@ namespace inv {
         }
         int res;
         if (i2c != nullptr) {
-            i2cTransfer.subAddress = (uint8_t)ICM20948_RegMap::ACCEL_XOUT_H;
+            i2cTransfer.subAddress = (uint8_t) ICM20948_RegMap::ACCEL_XOUT_H;
             i2cTransfer.data = buf;
             i2cTransfer.dataSize = 23;
             i2cTransfer.direction = I2C::Transfer::Read;
@@ -2079,7 +1786,7 @@ namespace inv {
                 INV_DEBUG("i2c read return code = %d", res);
             }
         } else {
-            txbuf[0] = (1U << 7U) | ((uint8_t)ICM20948_RegMap::ACCEL_XOUT_H & 0x7fU);
+            txbuf[0] = (1U << 7U) | ((uint8_t) ICM20948_RegMap::ACCEL_XOUT_H & 0x7fU);
             spiTransfer.dataSize = 24;
             spiTransfer.rxData = rxbuf;
             spiTransfer.txData = txbuf;
