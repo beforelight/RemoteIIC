@@ -76,38 +76,39 @@ namespace inv {
 
     struct Config {
         enum mpu_accel_fs {
-            MPU_FS_2G = 0,
-            MPU_FS_4G,
-            MPU_FS_8G,
-            MPU_FS_16G,
+            MPU_FS_2G = 2,
+            MPU_FS_4G = 4,
+            MPU_FS_8G = 8,
+            MPU_FS_16G = 16,
         } accelFullScale;
 
         enum mpu_accel_bw {
-            MPU_ABW_218 = 1,
-            MPU_ABW_99,
-            MPU_ABW_45,
-            MPU_ABW_21,
-            MPU_ABW_10,
-            MPU_ABW_5,
-            MPU_ABW_420,
-            NUM_MPU_ABW
+            MPU_ABW_420 = 420,
+            MPU_ABW_218 = 218,
+            MPU_ABW_99 = 99,
+            MPU_ABW_45 = 45,
+            MPU_ABW_21 = 21,
+            MPU_ABW_10 = 10,
+            MPU_ABW_5 = 5,
         } accelBandwidth;
 
         enum mpu_gyro_fs {
-            MPU_FS_250dps = 0,
-            MPU_FS_500dps,
-            MPU_FS_1000dps,
-            MPU_FS_2000dps,
+            MPU_FS_125dps = 125,
+            MPU_FS_250dps = 250,
+            MPU_FS_500dps = 500,
+            MPU_FS_1000dps = 1000,
+            MPU_FS_2000dps = 2000,
         } gyroFullScale;
 
         enum mpu_gyro_bw {
-            MPU_GBW_250 = 0,
-            MPU_GBW_176,
-            MPU_GBW_92,
-            MPU_GBW_41,
-            MPU_GBW_20,
-            MPU_GBW_10,
-            MPU_GBW_5,
+            MPU_GBW_361 = 361,
+            MPU_GBW_250 = 250,
+            MPU_GBW_176 = 176,
+            MPU_GBW_92 = 92,
+            MPU_GBW_41 = 41,
+            MPU_GBW_20 = 20,
+            MPU_GBW_10 = 10,
+            MPU_GBW_5 = 5,
         } gyroBandwidth;
 
         enum mpu_gyro_unit {
@@ -304,6 +305,28 @@ namespace inv {
         uint8_t rxbuf[24];
         constexpr static float magUnit = 0.15f;;//固定量程4900uT 0.15µT/LSB
     };
+
+
+//    class BMX160 : public IMU {
+//    public:
+//        ~BMX160() {}
+//        BMX160(I2C &_i2c, uint16_t _addr = SlaveAddressAutoDetect) : IMU(_i2c, _addr) {}
+//        BMX160(SPI &_spi) : IMU(_spi) {}
+//        int Init(Config _cfg = Config()) override;
+//        bool Detect() override;
+//        int SelfTest() override;
+//        std::string Report() override;
+//        bool DataReady() override;
+//        int EnableDataReadyInt() override;
+//        int SoftReset() override;
+//        int ReadSensorBlocking() override;
+//        int ReadSensorNonBlocking() override;
+//        int Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) override;
+//        int Convert(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
+//        int Convert(float *mag_x, float *mag_y, float *mag_z) override;
+//        int Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+//        int Convert(float *temp) override;
+//    };
 
 
     class IMU_Ptr : public std::shared_ptr<IMU> {
@@ -820,6 +843,118 @@ namespace inv {
     constexpr static const unsigned int MPU9250_AK8963_OVERFLOW = (0x08);
     constexpr static const unsigned int MPU9250_AK8963_DATA_ERROR = (0x40);
     constexpr static const unsigned int MPU9250_AK8963_CNTL2_SRST = 0x01;
+
+
+    enum class BMX160_RegMap : uint8_t {
+        CHIP_ID = 0x00,  ///<Chip Identification.
+        ERR_REG = 0x02,  ///<Reports sensor error flags.  Flags reset when read.
+        PMU_STATUS = 0x03,      ///<Reports current power mode for sensors.
+        DATA_0 = 0x04,          ///<MAG_X axis bits7:0
+        DATA_1 = 0x05,          ///<MAG_X axis bits15:8
+        DATA_2 = 0x06,          ///<MAG_Y axis bits7:0
+        DATA_3 = 0x07,          ///<MAG_Y axis bits15:8
+        DATA_4 = 0x08,          ///<MAG_Z axis bits7:0
+        DATA_5 = 0x09,          ///<MAG_Z axis bits15:8
+        DATA_6 = 0x0A,          ///<RHALL bits7:0
+        DATA_7 = 0x0B,          ///<RHALL bits15:8
+        DATA_8 = 0x0C,          ///<GYR_X axis bits7:0
+        DATA_9 = 0x0D,          ///<GYR_X axis bits15:8
+        DATA_10 = 0x0E,         ///<GYR_Y axis bits7:0
+        DATA_11 = 0x0F,         ///<GYR_Y axis bits15:8
+        DATA_12 = 0x10,         ///<GYR_Z axis bits7:0
+        DATA_13 = 0x11,         ///<GYR_Z axis bits15:8
+        DATA_14 = 0x12,         ///<ACC_X axis bits7:0
+        DATA_15 = 0x13,         ///<ACC_X axis bits15:8
+        DATA_16 = 0x14,         ///<ACC_Y axis bits7:0
+        DATA_17 = 0x15,         ///<ACC_Y axis bits15:8
+        DATA_18 = 0x16,         ///<ACC_Z axis bits7:0
+        DATA_19 = 0x17,         ///<ACC_Z axis bits15:8
+        SENSORTIME_0 = 0x18,     ///<24bit counter synchronized with data, bits7:0
+        SENSORTIME_1 = 0x19,    ///<24bit counter synchronized with data, bits15:8
+        SENSORTIME_2 = 0x1A,    ///<24bit counter synchronized with data, bits23:16
+        STATUS = 0x1B,          ///<Reports sensors status flags
+        INT_STATUS_0 = 0x1C,    ///<Contains interrupt status flags
+        INT_STATUS_1 = 0x1D,    ///<Contains interrupt status flags
+        INT_STATUS_2 = 0x1E,    ///<Contains interrupt status flags
+        INT_STATUS_3 = 0x1F,    ///<Contains interrupt status flags
+        TEMPERATURE_0 = 0x20,   ///<Contains temperature of sensor, bits7:0
+        TEMPERATURE_1 = 0x21,   ///<Contains temperature of sensor, bits15:8
+        FIFO_LENGTH_0 = 0x22,   ///<Current fill level of FIFO, bits7:0
+        FIFO_LENGTH_1 = 0x23,   ///<Current fill level of FIFO, bits10:8
+        FIFO_DATA = 0x24,       ///<FIFO data read out register, burst read
+        ACC_CONF = 0x40, ///<Set ODR, bandwidth, and read mode of accelerometer
+        ACC_RANGE = 0x41,       ///<Sets accelerometer g-range
+        GYR_CONF = 0x42,        ///<Set ODR, bandwidth, and read mode of gyroscope
+        GYR_RANGE = 0x43,       ///<Sets gyroscope angular rate measurement range
+        MAG_CONF = 0x44,        ///<Sets ODR of magnetometer interface
+        FIFO_DOWNS = 0x45,      ///<Sets down sampling ratios of accel and gyro data
+        ///<for FIFO
+        FIFO_CONFIG_0 = 0x46,   ///<Sets FIFO Watermark
+        FIFO_CONFIG_1 = 0x47,   ///<Sets which sensor data is available in FIFO,
+        ///<Header/Headerless mode, Ext Int tagging, Sensortime
+        MAG_IF_0 = 0x4c, ///<Magnetometer 7-bit I2C address, bits7:1
+        MAG_IF_1 = 0x4D,        ///<Magnetometer interface configuration
+        MAG_IF_2 = 0x4E,        ///<Magnetometer address to read
+        MAG_IF_3 = 0x4F,        ///<Magnetometer address to write
+        INT_EN_0 = 0x50,        ///<Interrupt enable bits
+        INT_EN_1 = 0x51,        ///<Interrupt enable bits
+        INT_EN_2 = 0x52,        ///<Interrupt enable bits
+        INT_OUT_CTRL = 0x53,    ///<Contains the behavioral configuration of INT pins
+        INT_LATCH = 0x54,       ///<Contains the interrupt rest bit and the interrupt
+        ///<mode selection
+        INT_MAP_0 = 0x55,       ///<Controls which interrupt signals are mapped to the
+        ///<INT1 and INT2 pins
+        INT_MAP_1 = 0x56,       ///<Controls which interrupt signals are mapped to the
+        ///<INT1 and INT2 pins
+        INT_MAP_2 = 0x57,       ///<Controls which interrupt signals are mapped to the
+        ///<INT1 and INT2 pins
+        INT_DATA_0 = 0x58,      ///<Contains the data source definition for the two
+        ///<interrupt groups
+        INT_DATA_1 = 0x59,      ///<Contains the data source definition for the two
+        ///<interrupt groups
+        INT_LOWHIGH_0 = 0x5A,   ///<Contains the configuration for the low g interrupt
+        INT_LOWHIGH_1 = 0x5B,   ///<Contains the configuration for the low g interrupt
+        INT_LOWHIGH_2 = 0x5C,   ///<Contains the configuration for the low g interrupt
+        INT_LOWHIGH_3 = 0x5D,   ///<Contains the configuration for the low g interrupt
+        INT_LOWHIGH_4 = 0x5E,   ///<Contains the configuration for the low g interrupt
+        INT_MOTION_0 = 0x5F,    ///<Contains the configuration for the any motion and
+        ///<no motion interrupts
+        INT_MOTION_1 = 0x60,    ///<Contains the configuration for the any motion and
+        ///<no motion interrupts
+        INT_MOTION_2 = 0x61,    ///<Contains the configuration for the any motion and
+        ///<no motion interrupts
+        INT_MOTION_3 = 0x62,    ///<Contains the configuration for the any motion and
+        ///<no motion interrupts
+        INT_TAP_0 = 0x63,       ///<Contains the configuration for the tap interrupts
+        INT_TAP_1 = 0x64,       ///<Contains the configuration for the tap interrupts
+        INT_ORIENT_0 = 0x65,    ///<Contains the configuration for the oeientation
+        ///<interrupt
+        INT_ORIENT_1 = 0x66,    ///<Contains the configuration for the oeientation
+        ///<interrupt
+        INT_FLAT_0 = 0x67,      ///<Contains the configuration for the flat interrupt
+        INT_FLAT_1 = 0x68,      ///<Contains the configuration for the flat interrupt
+        FOC_CONF = 0x69,        ///<Contains configuration for the fast offset
+        ///<compensation for the accelerometer and gyroscope
+        CONF = 0x6A,            ///<Configuration of sensor, nvm_prog_en bit
+        IF_CONF = 0x6B,         ///<Contains settings for the digital interface
+        PMU_TRIGGER = 0x6C,     ///<Sets trigger conditions to change gyro power modes
+        SELF_TEST = 0x6D,       ///<Self test configuration
+        NV_CONF = 0x70,  ///<Contains settings for the digital interface
+        OFFSET_0 = 0x71,        ///<Contains offset comp values for acc_off_x7:0
+        OFFSET_1 = 0x72,        ///<Contains offset comp values for acc_off_y7:0
+        OFFSET_2 = 0x73,        ///<Contains offset comp values for acc_off_z7:0
+        OFFSET_3 = 0x74,        ///<Contains offset comp values for gyr_off_x7:0
+        OFFSET_4 = 0x75,        ///<Contains offset comp values for gyr_off_y7:0
+        OFFSET_5 = 0x76,        ///<Contains offset comp values for gyr_off_z7:0
+        OFFSET_6 = 0x77,        ///<gyr/acc offset enable bit and gyr_off_(zyx) bits9:8
+        STEP_CNT_0 = 0x78,      ///<Step counter bits 15:8
+        STEP_CNT_1 = 0x79,      ///<Step counter bits 7:0
+        STEP_CONF_0 = 0x7A,     ///<Contains configuration of the step detector
+        STEP_CONF_1 = 0x7B,     ///<Contains configuration of the step detector
+        CMD = 0x7E       ///<Command register triggers operations like
+        ///<softreset, NVM programming, etc.
+    };
+
 #endif //1
 }
 #endif //_INV_IMU_HPP_

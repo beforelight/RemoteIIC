@@ -58,6 +58,7 @@ namespace inv {
 
         //配置陀螺仪lpf
         switch (cfg.gyroBandwidth) {
+            case Config::MPU_GBW_361:
             case Config::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 0);
                 break;
@@ -77,79 +78,81 @@ namespace inv {
                 res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 5);
                 break;
             case Config::MPU_GBW_5:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 6);
-                break;
             default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 0);
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::CONFIG, 6);
                 break;
         }
 
         //配置陀螺仪量程和单位
         switch (cfg.gyroUnit) {
             case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
                 break;
             case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60 / 360);
+                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
                 break;
             case Config::MPU_UNIT_DegPerSec:
             default:
-                gyroUnit = 250.0 / 32768;
+                gyroUnit = 250.0 / 32768.0;
                 break;
         }
         switch (cfg.gyroFullScale) {
+            case Config::MPU_FS_125dps:
             case Config::MPU_FS_250dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 0 << 3);
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 0 << 3u);
                 break;
             case Config::MPU_FS_500dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit *= 2;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 1 << 3u);
+                gyroUnit *= 2.0;
                 break;
             case Config::MPU_FS_1000dps:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit *= 4;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 2 << 3u);
+                gyroUnit *= 4.0;
                 break;
             case Config::MPU_FS_2000dps:
             default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit *= 8;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::GYRO_CONFIG, 3 << 3u);
+                gyroUnit *= 8.0;
                 break;
         }
 
         //配置加速度计量程和单位
         switch (cfg.accelUnit) {
             case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768);
+                accelUnit = (2.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768);
+                accelUnit = (2000.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_MetersPerSquareSecond:
             default:
-                accelUnit = 2.0 * 9.8 / 32768;
+                accelUnit = 2.0 * 9.8 / 32768.0;
                 break;
         }
         switch (cfg.accelFullScale) {
             case Config::MPU_FS_2G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 0 << 3);
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 0 << 3u);
                 break;
             case Config::MPU_FS_4G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit *= 2;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 1 << 3u);
+                accelUnit *= 2.0;
                 break;
             case Config::MPU_FS_8G:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit *= 4;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 2 << 3u);
+                accelUnit *= 4.0;
                 break;
             case Config::MPU_FS_16G:
             default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit *= 8;
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG, 3 << 3u);
+                accelUnit *= 8.0;
                 break;
         }
 
         //配置加速度计lpf
         switch (cfg.accelBandwidth) {
+            case Config::MPU_ABW_420:
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 7);
+                break;
             case Config::MPU_ABW_218:
                 res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 1);
                 break;
@@ -166,13 +169,8 @@ namespace inv {
                 res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 5);
                 break;
             case Config::MPU_ABW_5:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 6);
-                break;
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 7);
-                break;
             default:
-                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 1);
+                res |= WriteRegVerified((uint8_t) ICM20602_RegMap::ACCEL_CONFIG2, 6);
                 break;
         }
 
@@ -642,6 +640,7 @@ namespace inv {
 
         //配置陀螺仪lpf
         switch (cfg.gyroBandwidth) {
+            case Config::MPU_GBW_361:
             case Config::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 0);
                 break;
@@ -661,73 +660,72 @@ namespace inv {
                 res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 5);
                 break;
             case Config::MPU_GBW_5:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 6);
-                break;
             default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 0);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::CONFIG, 6);
                 break;
         }
 
         //配置陀螺仪量程和单位
         switch (cfg.gyroUnit) {
             case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
                 break;
             case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60 / 360);
+                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
                 break;
             case Config::MPU_UNIT_DegPerSec:
             default:
-                gyroUnit = 250.0 / 32768;
+                gyroUnit = 250.0 / 32768.0;
                 break;
         }
         switch (cfg.gyroFullScale) {
+            case Config::MPU_FS_125dps:
             case Config::MPU_FS_250dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 0 << 3);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 0 << 3u);
                 break;
             case Config::MPU_FS_500dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit *= 2;
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 1 << 3u);
+                gyroUnit *= 2.0;
                 break;
             case Config::MPU_FS_1000dps:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit *= 4;
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 2 << 3u);
+                gyroUnit *= 4.0;
                 break;
             case Config::MPU_FS_2000dps:
             default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit *= 8;
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::GYRO_CONFIG, 3 << 3u);
+                gyroUnit *= 8.0;
                 break;
         }
 
         //配置加速度计量程和单位
         switch (cfg.accelUnit) {
             case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768);
+                accelUnit = (2.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768);
+                accelUnit = (2000.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_MetersPerSquareSecond:
             default:
-                accelUnit = 2.0 * 9.8 / 32768;
+                accelUnit = 2.0 * 9.8 / 32768.0;
                 break;
         }
         switch (cfg.accelFullScale) {
             case Config::MPU_FS_2G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 0 << 3);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 0 << 3u);
                 break;
             case Config::MPU_FS_4G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 1 << 3);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 1 << 3u);
                 accelUnit *= 2;
                 break;
             case Config::MPU_FS_8G:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 2 << 3);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 2 << 3u);
                 accelUnit *= 4;
                 break;
             case Config::MPU_FS_16G:
             default:
-                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 3 << 3);
+                res |= WriteRegVerified((uint8_t) MPU6050_RegMap::ACCEL_CONFIG, 3 << 3u);
                 accelUnit *= 8;
                 break;
         }
@@ -827,6 +825,7 @@ namespace inv {
 
         //配置陀螺仪lpf
         switch (cfg.gyroBandwidth) {
+            case Config::MPU_GBW_361:
             case Config::MPU_GBW_250:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 0);
                 break;
@@ -846,56 +845,55 @@ namespace inv {
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 5);
                 break;
             case Config::MPU_GBW_5:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 6);
-                break;
             default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 0);
+                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::CONFIG, 6);
                 break;
         }
 
         //配置陀螺仪量程和单位
         switch (cfg.gyroUnit) {
             case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768) * (M_PI / 180.0);
+                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
                 break;
             case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60.0 / 360.0);
+                gyroUnit = (250.0 / 32768.0) * (60.0 / 360.0);
                 break;
             case Config::MPU_UNIT_DegPerSec:
             default:
-                gyroUnit = 250.0 / 32768;
+                gyroUnit = 250.0 / 32768.0;
                 break;
         }
         switch (cfg.gyroFullScale) {
+            case Config::MPU_FS_125dps:
             case Config::MPU_FS_250dps:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 0 << 3);
                 break;
             case Config::MPU_FS_500dps:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 1 << 3);
-                gyroUnit *= 2;
+                gyroUnit *= 2.0;
                 break;
             case Config::MPU_FS_1000dps:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 2 << 3);
-                gyroUnit *= 4;
+                gyroUnit *= 4.0;
                 break;
             case Config::MPU_FS_2000dps:
             default:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::GYRO_CONFIG, 3 << 3);
-                gyroUnit *= 8;
+                gyroUnit *= 8.0;
                 break;
         }
 
         //配置加速度计量程和单位
         switch (cfg.accelUnit) {
             case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768);
+                accelUnit = (2.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768);
+                accelUnit = (2000.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_MetersPerSquareSecond:
             default:
-                accelUnit = 2.0 * 9.8 / 32768;
+                accelUnit = 2.0 * 9.8 / 32768.0;
                 break;
         }
         switch (cfg.accelFullScale) {
@@ -904,21 +902,24 @@ namespace inv {
                 break;
             case Config::MPU_FS_4G:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 1 << 3);
-                accelUnit *= 2;
+                accelUnit *= 2.0;
                 break;
             case Config::MPU_FS_8G:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 2 << 3);
-                accelUnit *= 4;
+                accelUnit *= 4.0;
                 break;
             case Config::MPU_FS_16G:
             default:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG, 3 << 3);
-                accelUnit *= 8;
+                accelUnit *= 8.0;
                 break;
         }
 
         //配置加速度计lpf
         switch (cfg.accelBandwidth) {
+            case Config::MPU_ABW_420:
+                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 7);
+                break;
             case Config::MPU_ABW_218:
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 1);
                 break;
@@ -935,13 +936,8 @@ namespace inv {
                 res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 5);
                 break;
             case Config::MPU_ABW_5:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 6);
-                break;
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 7);
-                break;
             default:
-                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 1);
+                res |= WriteRegVerified((uint8_t) MPU9250_RegMap::ACCEL_CONFIG2, 6);
                 break;
         }
 
@@ -1668,6 +1664,9 @@ namespace inv {
         //配置陀螺仪lpf
 //        res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 0);
         switch (cfg.gyroBandwidth) {
+            case Config::MPU_GBW_361:
+                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (7 << 3));
+                break;
             case Config::MPU_GBW_250:
                 res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (0 << 3));
                 break;
@@ -1687,48 +1686,50 @@ namespace inv {
                 res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (5 << 3));
                 break;
             case Config::MPU_GBW_5:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (6 << 3));
-                break;
             default:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (1 << 3));
+                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 | (6 << 3));
                 break;
         }
 
         //配置陀螺仪量程和单位
         switch (cfg.gyroUnit) {
             case Config::MPU_UNIT_RadPerSec:
-                gyroUnit = (250.0 / 32768) * (M_PI / 180);
+                gyroUnit = (250.0 / 32768.0) * (M_PI / 180.0);
                 break;
             case Config::MPU_UNIT_RevolutionsPerMinute:
-                gyroUnit = (250.0 / 32768) * (60 / 360);
+                gyroUnit = (250.0 / 32768) * (60.0 / 360.0);
                 break;
             case Config::MPU_UNIT_DegPerSec:
             default:
-                gyroUnit = 250.0 / 32768;
+                gyroUnit = 250.0 / 32768.0;
                 break;
         }
 
         switch (cfg.gyroFullScale) {
+            case Config::MPU_FS_125dps:
             case Config::MPU_FS_250dps:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 0 << 1, 3 << 1);
                 break;
             case Config::MPU_FS_500dps:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 1 << 1, 3 << 1);
-                gyroUnit *= 2;
+                gyroUnit *= 2.0;
                 break;
             case Config::MPU_FS_1000dps:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 2 << 1, 3 << 1);
-                gyroUnit *= 4;
+                gyroUnit *= 4.0;
                 break;
             case Config::MPU_FS_2000dps:
             default:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::GYRO_CONFIG_1, 3 << 1, 3 << 1);
-                gyroUnit *= 8;
+                gyroUnit *= 8.0;
                 break;
         }
 
         //配置加速度计lpf
         switch (cfg.accelBandwidth) {
+            case Config::MPU_ABW_420:
+                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (7 << 3));
+                break;
             case Config::MPU_ABW_218:
                 res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (1 << 3));
                 break;
@@ -1745,27 +1746,22 @@ namespace inv {
                 res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (5 << 3));
                 break;
             case Config::MPU_ABW_5:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (6 << 3));
-                break;
-            case Config::MPU_ABW_420:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (7 << 3));
-                break;
             default:
-                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (1 << 3));
+                res |= WriteRegVerified((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 | (6 << 3));
                 break;
         }
 
         //配置加速度计量程和单位
         switch (cfg.accelUnit) {
             case Config::MPU_UNIT_G:
-                accelUnit = (2.0 / 32768);
+                accelUnit = (2.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_mG:
-                accelUnit = (2000.0 / 32768);
+                accelUnit = (2000.0 / 32768.0);
                 break;
             case Config::MPU_UNIT_MetersPerSquareSecond:
             default:
-                accelUnit = 2.0 * 9.8 / 32768;
+                accelUnit = 2.0 * 9.8 / 32768.0;
                 break;
         }
         switch (cfg.accelFullScale) {
@@ -1774,16 +1770,16 @@ namespace inv {
                 break;
             case Config::MPU_FS_4G:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 1 << 1, 3 << 1);
-                accelUnit *= 2;
+                accelUnit *= 2.0;
                 break;
             case Config::MPU_FS_8G:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 2 << 1, 3 << 1);
-                accelUnit *= 4;
+                accelUnit *= 4.0;
                 break;
             case Config::MPU_FS_16G:
             default:
                 res |= ModifyReg((uint16_t) ICM20948_RegMap::ACCEL_CONFIG, 3 << 1, 3 << 1);
-                accelUnit *= 8;
+                accelUnit *= 8.0;
                 break;
         }
 
