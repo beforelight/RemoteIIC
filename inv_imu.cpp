@@ -1937,4 +1937,97 @@ namespace inv {
         return rtv;
     }
 
+    int QMC5883L::Init(Config _cfg) {
+        enum CONTROL1_BITSET {
+            Mode_Standby = 0b00000000,
+            Mode_Continuous = 0b00000001,
+            ODR_10Hz = 0b00000000,
+            ODR_50Hz = 0b00000100,
+            ODR_100Hz = 0b00001000,
+            ODR_200Hz = 0b00001100,
+            RNG_2G = 0b00000000,
+            RNG_8G = 0b00010000,
+            OSR_512 = 0b00000000,
+            OSR_256 = 0b01000000,
+            OSR_128 = 0b10000000,
+            OSR_64 = 0b11000000
+        };
+        int res = 0;
+        res |= WriteRegVerified(static_cast<uint8_t>(QMC5883L_RegMap::SET_RESET_PERIOD), 0x01);
+        res |= WriteRegVerified(static_cast<uint8_t>(QMC5883L_RegMap::CONTROL1), OSR_512 | RNG_8G | ODR_200Hz | Mode_Continuous);
+        res |= EnableDataReadyInt();
+        return res;
+    }
+    bool QMC5883L::Detect() {
+        uint8_t val = 0xFF;
+        if (0 == ReadReg(static_cast<uint8_t>(QMC5883L_RegMap::CONTROL2), &val)) {
+            if (val != 0xFF) {
+                return true;
+            }
+        }
+        return false;
+    }
+    int QMC5883L::SelfTest() {
+        return 0;
+    }
+    std::string QMC5883L::Report() {
+        return std::string("model:QMC5883L\t");
+    }
+    bool QMC5883L::DataReady() {
+        return true;
+    }
+    int QMC5883L::EnableDataReadyInt() {
+        return WriteRegVerified(static_cast<uint8_t>(QMC5883L_RegMap::CONTROL2), 0x0);
+    }
+    int QMC5883L::SoftReset() {
+        return WriteRegVerified(static_cast<uint8_t>(QMC5883L_RegMap::CONTROL2), 0x80);
+    }
+    int QMC5883L::ReadSensorBlocking() {
+        i2cTransfer.direction = I2C::Transfer::Read;
+        i2cTransfer.subAddress = (uint8_t) QMC5883L_RegMap::XOUT_L;
+        i2cTransfer.data = buf;
+        i2cTransfer.dataSize = 9;
+        return i2c->masterTransferBlocking(i2cTransfer);
+    }
+    int QMC5883L::ReadSensorNonBlocking() {
+        i2cTransfer.direction = I2C::Transfer::Read;
+        i2cTransfer.subAddress = (uint8_t) QMC5883L_RegMap::XOUT_L;
+        i2cTransfer.data = buf;
+        i2cTransfer.dataSize = 9;
+        return i2c->masterTransferNonBlocking(i2cTransfer);
+    }
+    int QMC5883L::Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) {
+        return 0;
+    }
+    int QMC5883L::Convert(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) {
+        return 0;
+    }
+    int QMC5883L::Convert(float *mag_x, float *mag_y, float *mag_z) {
+        constexpr uint8_t DOR = 0b100;//高有效，data skipped for reading
+        constexpr uint8_t OVL = 0b010;//低有效
+        constexpr uint8_t DRDY = 0b001;//高有效
+        if ((buf[6] & (DOR | DRDY)) && ((~buf[6]) & OVL)) {
+            if (mag_x) { *mag_x = magUnit * ((int16_t) (buf[1] << 8) | buf[0]); }
+            if (mag_y) { *mag_y = magUnit * ((int16_t) (buf[3] << 8) | buf[2]); }
+            if (mag_z) { *mag_z = magUnit * ((int16_t) (buf[5] << 8) | buf[4]); }
+            return 0;
+        }
+        return buf[6];
+    }
+    int QMC5883L::Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) {
+        constexpr uint8_t DOR = 0b100;//高有效，data skipped for reading
+        constexpr uint8_t OVL = 0b010;//低有效
+        constexpr uint8_t DRDY = 0b001;//高有效
+        if ((buf[6] & (DOR | DRDY)) && ((~buf[6]) & OVL)) {
+            if (mag_x) { *mag_x = ((int16_t) (buf[1] << 8) | buf[0]); }
+            if (mag_y) { *mag_y = ((int16_t) (buf[3] << 8) | buf[2]); }
+            if (mag_z) { *mag_z = ((int16_t) (buf[5] << 8) | buf[4]); }
+            return 0;
+        }
+        return buf[6];
+    }
+    int QMC5883L::Convert(float *temp) {
+        if (temp) { *temp = 0.01f * ((int16_t) (buf[8] << 8) | buf[7]); }
+        return 0;
+    }
 }

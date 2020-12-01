@@ -698,6 +698,44 @@ namespace inv {
     };
 
 
+    class QMC5883L : public IMU {
+    public:
+        ~QMC5883L() {}
+        QMC5883L(I2C &_i2c) : IMU(_i2c, 0x0D) {}
+        int Init(Config _cfg = Config()) override;
+        bool Detect() override;
+        int SelfTest() override;
+        std::string Report() override;
+        bool DataReady() override;
+        int EnableDataReadyInt() override;
+        int SoftReset() override;
+        int ReadSensorBlocking() override;
+        int ReadSensorNonBlocking() override;
+        int Convert(float *acc_x, float *acc_y, float *acc_z, float *gyro_x, float *gyro_y, float *gyro_z) override;
+        int Convert(int16_t *acc_x, int16_t *acc_y, int16_t *acc_z, int16_t *gyro_x, int16_t *gyro_y, int16_t *gyro_z) override;
+        int Convert(float *mag_x, float *mag_y, float *mag_z) override;
+        int Convert(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z) override;
+        int Convert(float *temp) override;
+    private:
+        uint8_t buf[9];
+        constexpr static float magUnit = 0.0244140625f;//固定量程800uT/32768.0
+    public:
+        enum class QMC5883L_RegMap : uint8_t {
+            XOUT_L = 0x00,
+            XOUT_H = 0x01,
+            YOUT_L = 0x02,
+            YOUT_H = 0x03,
+            ZOUT_L = 0x04,
+            ZOUT_H = 0x05,
+            STATUS = 0x06,
+            TOUT_L = 0x07,
+            TOUT_H = 0x08,
+            CONTROL1 = 0x09,
+            CONTROL2 = 0x0A,
+            SET_RESET_PERIOD = 0x0B //必须设置为0x01
+        };
+    };
+
 //    class BMX160 : public IMU {
 //    public:
 //        ~BMX160() {}
