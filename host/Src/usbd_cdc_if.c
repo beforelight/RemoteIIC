@@ -23,7 +23,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include"conf.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -95,7 +95,13 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-
+USBD_CDC_LineCodingTypeDef linecoding =
+        {
+                115200, /* baud rate*/
+                0x00,   /* stop bits-1*/
+                0x00,   /* parity - none*/
+                0x08    /* nb. of bits 8*/
+        };
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -124,8 +130,8 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 static int8_t CDC_Init_FS(void);
 static int8_t CDC_DeInit_FS(void);
-static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
-static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
+static int8_t CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length);
+static int8_t CDC_Receive_FS(uint8_t *pbuf, uint32_t *Len);
 static int8_t CDC_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
@@ -137,38 +143,36 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
   */
 
 USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
-{
-  CDC_Init_FS,
-  CDC_DeInit_FS,
-  CDC_Control_FS,
-  CDC_Receive_FS,
-  CDC_TransmitCplt_FS
-};
+        {
+                CDC_Init_FS,
+                CDC_DeInit_FS,
+                CDC_Control_FS,
+                CDC_Receive_FS,
+                CDC_TransmitCplt_FS
+        };
 
 /* Private functions ---------------------------------------------------------*/
 /**
   * @brief  Initializes the CDC media low layer over the FS USB IP
   * @retval USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_Init_FS(void)
-{
-  /* USER CODE BEGIN 3 */
-  /* Set Application Buffers */
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
-  return (USBD_OK);
-  /* USER CODE END 3 */
+static int8_t CDC_Init_FS(void) {
+    /* USER CODE BEGIN 3 */
+    /* Set Application Buffers */
+    USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+    return (USBD_OK);
+    /* USER CODE END 3 */
 }
 
 /**
   * @brief  DeInitializes the CDC media low layer
   * @retval USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_DeInit_FS(void)
-{
-  /* USER CODE BEGIN 4 */
-  return (USBD_OK);
-  /* USER CODE END 4 */
+static int8_t CDC_DeInit_FS(void) {
+    /* USER CODE BEGIN 4 */
+    return (USBD_OK);
+    /* USER CODE END 4 */
 }
 
 /**
@@ -178,70 +182,78 @@ static int8_t CDC_DeInit_FS(void)
   * @param  length: Number of data to be sent (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
-{
-  /* USER CODE BEGIN 5 */
-  switch(cmd)
-  {
-    case CDC_SEND_ENCAPSULATED_COMMAND:
+static int8_t CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length) {
+    /* USER CODE BEGIN 5 */
+    switch (cmd) {
+        case CDC_SEND_ENCAPSULATED_COMMAND:
 
-    break;
+            break;
 
-    case CDC_GET_ENCAPSULATED_RESPONSE:
+        case CDC_GET_ENCAPSULATED_RESPONSE:
 
-    break;
+            break;
 
-    case CDC_SET_COMM_FEATURE:
+        case CDC_SET_COMM_FEATURE:
 
-    break;
+            break;
 
-    case CDC_GET_COMM_FEATURE:
+        case CDC_GET_COMM_FEATURE:
 
-    break;
+            break;
 
-    case CDC_CLEAR_COMM_FEATURE:
+        case CDC_CLEAR_COMM_FEATURE:
 
-    break;
+            break;
 
-  /*******************************************************************************/
-  /* Line Coding Structure                                                       */
-  /*-----------------------------------------------------------------------------*/
-  /* Offset | Field       | Size | Value  | Description                          */
-  /* 0      | dwDTERate   |   4  | Number |Data terminal rate, in bits per second*/
-  /* 4      | bCharFormat |   1  | Number | Stop bits                            */
-  /*                                        0 - 1 Stop bit                       */
-  /*                                        1 - 1.5 Stop bits                    */
-  /*                                        2 - 2 Stop bits                      */
-  /* 5      | bParityType |  1   | Number | Parity                               */
-  /*                                        0 - None                             */
-  /*                                        1 - Odd                              */
-  /*                                        2 - Even                             */
-  /*                                        3 - Mark                             */
-  /*                                        4 - Space                            */
-  /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
-  /*******************************************************************************/
-    case CDC_SET_LINE_CODING:
+            /*******************************************************************************/
+            /* Line Coding Structure                                                       */
+            /*-----------------------------------------------------------------------------*/
+            /* Offset | Field       | Size | Value  | Description                          */
+            /* 0      | dwDTERate   |   4  | Number |Data terminal rate, in bits per second*/
+            /* 4      | bCharFormat |   1  | Number | Stop bits                            */
+            /*                                        0 - 1 Stop bit                       */
+            /*                                        1 - 1.5 Stop bits                    */
+            /*                                        2 - 2 Stop bits                      */
+            /* 5      | bParityType |  1   | Number | Parity                               */
+            /*                                        0 - None                             */
+            /*                                        1 - Odd                              */
+            /*                                        2 - Even                             */
+            /*                                        3 - Mark                             */
+            /*                                        4 - Space                            */
+            /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
+            /*******************************************************************************/
+        case CDC_SET_LINE_CODING:
+            linecoding.bitrate = (uint32_t) (pbuf[0] | (pbuf[1] << 8) | \
+            (pbuf[2] << 16) | (pbuf[3] << 24));
+            linecoding.format = pbuf[4];
+            linecoding.paritytype = pbuf[5];
+            linecoding.datatype = pbuf[6];
+            break;
 
-    break;
+        case CDC_GET_LINE_CODING:
+            pbuf[0] = (uint8_t) (linecoding.bitrate);
+            pbuf[1] = (uint8_t) (linecoding.bitrate >> 8);
+            pbuf[2] = (uint8_t) (linecoding.bitrate >> 16);
+            pbuf[3] = (uint8_t) (linecoding.bitrate >> 24);
+            pbuf[4] = linecoding.format;
+            pbuf[5] = linecoding.paritytype;
+            pbuf[6] = linecoding.datatype;
+            break;
 
-    case CDC_GET_LINE_CODING:
+        case CDC_SET_CONTROL_LINE_STATE:
 
-    break;
+            break;
 
-    case CDC_SET_CONTROL_LINE_STATE:
+        case CDC_SEND_BREAK:
 
-    break;
+            break;
 
-    case CDC_SEND_BREAK:
+        default:
+            break;
+    }
 
-    break;
-
-  default:
-    break;
-  }
-
-  return (USBD_OK);
-  /* USER CODE END 5 */
+    return (USBD_OK);
+    /* USER CODE END 5 */
 }
 
 /**
@@ -259,13 +271,62 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
-{
-  /* USER CODE BEGIN 6 */
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (USBD_OK);
-  /* USER CODE END 6 */
+static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len) {
+    /* USER CODE BEGIN 6 */
+    static uint8_t cmdBuffer[1024];
+    //在原地处理
+    static int8_t onPackage = 0;
+    uint32_t idx = 0;//处理到当前缓存的第几个
+    static uint32_t lastCopyLen = 0;//上一次拷贝了多少长度的数据
+    package_t *package;
+    while ((*Len) - idx) {
+        if (onPackage == 0) {//检查是否接收到头
+            for (uint32_t i = idx; i < (*Len); ++i) {
+                if (UserRxBufferFS[i] == 0xaa) {//检查出帧头后开始一部分拷贝
+                    onPackage = 1;
+                    package = (package_t *) &UserRxBufferFS[i];
+                    if ((*Len) - idx < sizeof(package_t) || package->length + 1 > (*Len) - idx) {
+                        lastCopyLen = (*Len) - idx;
+                        memcpy(cmdBuffer, package, lastCopyLen);
+                        idx = (*Len);
+                    } else {
+                        idx += package->length + 1;
+                        memcpy(cmdBuffer, package, package->length + 1);//拷贝完一个指令，
+                        //执行指令
+                        CopeReceivedPackage(package);
+                        onPackage = 0;
+                    }
+                    break;
+                } else {
+                    idx++;
+                }
+            }
+        } else {
+            package = (package_t *) &cmdBuffer[0];
+            if (lastCopyLen < sizeof(package_t)) {//保证拷贝了长度信息
+                idx = MIN(sizeof(package_t) - lastCopyLen, (*Len));
+                memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[0], idx);
+                lastCopyLen += idx;
+            } else {
+                if (package->length + 1 > (*Len) - idx + lastCopyLen) {//接收的字符还不够
+                    memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], (*Len) - idx);
+                    idx = (*Len);
+                    lastCopyLen += (*Len) - idx;
+                } else {
+                    memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], package->length + 1 - lastCopyLen);
+                    idx += package->length + 1 - lastCopyLen;//拷贝完一个指令，
+                    //执行指令
+                    CopeReceivedPackage(package);
+                    onPackage = 0;
+                }
+            }
+        }
+    }
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+    return (USBD_OK);
+
+    /* USER CODE END 6 */
 }
 
 /**
@@ -279,18 +340,17 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   * @param  Len: Number of data to be sent (in bytes)
   * @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
   */
-uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
-{
-  uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 7 */
-  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
-  if (hcdc->TxState != 0){
-    return USBD_BUSY;
-  }
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
-  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-  /* USER CODE END 7 */
-  return result;
+uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len) {
+    uint8_t result = USBD_OK;
+    /* USER CODE BEGIN 7 */
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef *) hUsbDeviceFS.pClassData;
+    if (hcdc->TxState != 0) {
+        return USBD_BUSY;
+    }
+    USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+    result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+    /* USER CODE END 7 */
+    return result;
 }
 
 /**
@@ -305,15 +365,14 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
-{
-  uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 13 */
-  UNUSED(Buf);
-  UNUSED(Len);
-  UNUSED(epnum);
-  /* USER CODE END 13 */
-  return result;
+static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum) {
+    uint8_t result = USBD_OK;
+    /* USER CODE BEGIN 13 */
+    UNUSED(Buf);
+    UNUSED(Len);
+    UNUSED(epnum);
+    /* USER CODE END 13 */
+    return result;
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
