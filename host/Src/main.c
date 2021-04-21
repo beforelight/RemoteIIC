@@ -98,8 +98,7 @@ int main(void)
   MX_SPI2_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  extern int host();
-  host();
+  printf("hello RemoteIIC\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
