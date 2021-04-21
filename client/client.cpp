@@ -17,7 +17,7 @@ client_t::client_t() {
 //交互，初始化串口
 int client_t::Init(string port, unsigned long baud) {
     cout << "port = " << port << " baud = " << baud << endl;
-    srl.reset(new serial::Serial(port, baud, serial::Timeout::simpleTimeout(1000)));
+    srl.reset(new serial::Serial(port, baud, serial::Timeout::simpleTimeout(1000 * 10)));
     cout << "Is the serial port open?";
     if (srl->isOpen()) {
         td = std::thread(ServerBackgrand, this);
@@ -42,65 +42,66 @@ void client_t::ServerBackgrand(client_t *clt) {
     ReceivedPackageMutex.lock();
     static std::vector<uint8_t> buffer;
     std::shared_ptr<serial::Serial> srl = clt->srl;
+    while (1) {
+        while (srl->available()) {
+            srl->read(buffer, srl->available());
+            uint8_t *UserRxBufferFS = &buffer[0];
+            uint32_t LenLen = buffer.size();
+            uint32_t *Len = &LenLen;
 
-    while (srl->waitReadable()) {
-        srl->read(buffer, srl->available());
-        uint8_t *UserRxBufferFS = &buffer[0];
-        uint32_t LenLen = buffer.size();
-        uint32_t *Len = &LenLen;
 
+            /* USER CODE BEGIN 6 */
 
-        /* USER CODE BEGIN 6 */
-
-        //在原地处理
-        static int8_t onPackage = 0;
-        uint32_t idx = 0;//处理到当前缓存的第几个
-        static uint32_t lastCopyLen = 0;//上一次拷贝了多少长度的数据
-        package_t *package;
-        while ((*Len) - idx) {
-            if (onPackage == 0) {//检查是否接收到头
-                for (uint32_t i = idx; i < (*Len); ++i) {
-                    if (UserRxBufferFS[i] == 0xaa) {//检查出帧头后开始一部分拷贝
-                        onPackage = 1;
-                        package = (package_t *) &UserRxBufferFS[i];
-                        if ((*Len) - idx < sizeof(package_t) || package->length + 1 > (*Len) - idx) {
-                            lastCopyLen = (*Len) - idx;
-                            memcpy(cmdBuffer, package, lastCopyLen);
-                            idx = (*Len);
+            //在原地处理
+            static int8_t onPackage = 0;
+            uint32_t idx = 0;//处理到当前缓存的第几个
+            static uint32_t lastCopyLen = 0;//上一次拷贝了多少长度的数据
+            package_t *package;
+            while ((*Len) - idx) {
+                if (onPackage == 0) {//检查是否接收到头
+                    for (uint32_t i = idx; i < (*Len); ++i) {
+                        if (UserRxBufferFS[i] == 0xaa) {//检查出帧头后开始一部分拷贝
+                            onPackage = 1;
+                            package = (package_t *) &UserRxBufferFS[i];
+                            if ((*Len) - idx < sizeof(package_t) || package->length + 1 > (*Len) - idx) {
+                                lastCopyLen = (*Len) - idx;
+                                memcpy(cmdBuffer, package, lastCopyLen);
+                                idx = (*Len);
+                            } else {
+                                idx += package->length + 1;
+                                memcpy(cmdBuffer, package, package->length + 1);//拷贝完一个指令，
+                                //执行指令
+                                CopeReceivedPackage(package);
+                                onPackage = 0;
+                            }
+                            break;
                         } else {
-                            idx += package->length + 1;
-                            memcpy(cmdBuffer, package, package->length + 1);//拷贝完一个指令，
+                            idx++;
+                        }
+                    }
+                } else {
+                    package = (package_t *) &cmdBuffer[0];
+                    if (lastCopyLen < sizeof(package_t)) {//保证拷贝了长度信息
+                        idx = MIN(sizeof(package_t) - lastCopyLen, (*Len));
+                        memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[0], idx);
+                        lastCopyLen += idx;
+                    } else {
+                        if (package->length + 1 > (*Len) - idx + lastCopyLen) {//接收的字符还不够
+                            memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], (*Len) - idx);
+                            idx = (*Len);
+                            lastCopyLen += (*Len) - idx;
+                        } else {
+                            memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], package->length + 1 - lastCopyLen);
+                            idx += package->length + 1 - lastCopyLen;//拷贝完一个指令，
                             //执行指令
                             CopeReceivedPackage(package);
                             onPackage = 0;
                         }
-                        break;
-                    } else {
-                        idx++;
-                    }
-                }
-            } else {
-                package = (package_t *) &cmdBuffer[0];
-                if (lastCopyLen < sizeof(package_t)) {//保证拷贝了长度信息
-                    idx = MIN(sizeof(package_t) - lastCopyLen, (*Len));
-                    memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[0], idx);
-                    lastCopyLen += idx;
-                } else {
-                    if (package->length + 1 > (*Len) - idx + lastCopyLen) {//接收的字符还不够
-                        memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], (*Len) - idx);
-                        idx = (*Len);
-                        lastCopyLen += (*Len) - idx;
-                    } else {
-                        memcpy(&cmdBuffer[lastCopyLen], &UserRxBufferFS[idx], package->length + 1 - lastCopyLen);
-                        idx += package->length + 1 - lastCopyLen;//拷贝完一个指令，
-                        //执行指令
-                        CopeReceivedPackage(package);
-                        onPackage = 0;
                     }
                 }
             }
-        }
 
+        }
     }
 }
 void client_t::GPIO_Write(int gpio, uint8_t val) {

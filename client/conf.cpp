@@ -13,7 +13,9 @@ int CopeReceivedPackage(package_t *pack) {
         if (pack->cmd == host_printf) {
             uint8_t *buf = (uint8_t *) pack;
             buf += sizeof(package_t);
-            std::cout << std::string((char *) buf);
+            for (int i = 0; i < pack->length-sizeof(package_t); ++i) {
+                putchar(buf[i]);
+            }
         }else{
             ReceivedPackageMutex.unlock();
         }
