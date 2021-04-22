@@ -10,7 +10,7 @@
 #include<memory>
 #include<thread>
 #include<mutex>
-#include "serial/serial.h"
+#include "SerialPort.h"
 
 #include<cstdio>
 static std::mutex ptf_mux;
@@ -32,10 +32,10 @@ using std::vector;
 class client_t {
 public:
     client_t() {}
-    int Init(string port,unsigned long baud = 115200);
+    int Init(int port,unsigned long baud = 115200);
     void AlternateCOM();
-    static void ServerBackgrand(client_t* clt);
-    void CheckRecive();
+    int ServerBackgrand(char* _buf,UINT _len);
+//    int CheckRecive();
 
     void GPIO_Write(int gpio,uint8_t val);
     uint8_t GPIO_Read(int gpio);
@@ -70,7 +70,7 @@ public:
     int32_t I2C_Transfer(inv_i2c_transfer_t& tf);
 
 private:
-    std::shared_ptr<serial::Serial> srl;
+    CSerialPort srl;
     std::thread td;
 };
 

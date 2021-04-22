@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 project(client C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
+add_definitions(-DUNICODE)
 add_link_options("/MAP:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     add_compile_options(-O2)
@@ -12,38 +13,6 @@ else ()
     message("add_compile_options(-g)")
 endif ()
 
-#serial部分的
-if (1)
-    include_directories(serial/include)
-    ## Sources
-    set(serial_SRCS
-            serial/src/serial.cc
-            serial/include/serial/serial.h
-            serial/include/serial/v8stdint.h
-            )
-    if (APPLE)
-        # If OSX
-        list(APPEND serial_SRCS serial/src/impl/unix.cc)
-        list(APPEND serial_SRCS serial/src/impl/list_ports/list_ports_osx.cc)
-    elseif (UNIX)
-        # If unix
-        list(APPEND serial_SRCS serial/src/impl/unix.cc)
-        list(APPEND serial_SRCS serial/src/impl/list_ports/list_ports_linux.cc)
-    else ()
-        # If windows
-        list(APPEND serial_SRCS serial/src/impl/win.cc)
-        list(APPEND serial_SRCS serial/src/impl/list_ports/list_ports_win.cc)
-    endif ()
-    add_library(serial ${serial_SRCS})
-    link_libraries(serial)
-    if(APPLE)
-        target_link_libraries(serial ${FOUNDATION_LIBRARY} ${IOKIT_LIBRARY})
-    elseif(UNIX)
-        target_link_libraries(serial rt pthread)
-    else()
-        target_link_libraries(serial setupapi)
-    endif()
-endif ()
 
 #add_definitions(-D_C_INV_IMU_DEV_)
 #include_directories(/)
@@ -54,7 +23,7 @@ add_subdirectory(c_inv_imu)
 link_libraries(inv_imu)
 add_definitions(-D_C_INV_IMU_DEV_)
 
-set(client_src client.cpp)
+set(client_src client.cpp SerialPort.cpp)
 add_executable(test test.cpp ${client_src} ${inv_imu_src})
 #target_link_libraries(test inv_imu)
 

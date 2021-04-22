@@ -13,8 +13,7 @@ void test_iic();
 void test_spi();
 client_t clt;
 int main() {
-    clt.AlternateCOM();
-    clt.Init("COM4");
+    clt.Init(4);
 
 
     if (TEST_I2C) {
