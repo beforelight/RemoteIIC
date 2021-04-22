@@ -151,12 +151,12 @@ int ProcessI2cPackage(package_t *pack) {
     uint8_t *bufToSend = (uint8_t *) packToSend;
     bufToSend += sizeof(package_t);
     int32_t status;
-    uint8_t addr = buf[0];
-    uint32_t subaddr4byte = *(uint32_t *) &buf[1];
-    uint8_t subaddrsize = buf[5];
-    uint16_t dataSize2byte = *(uint16_t *) &buf[6];
+    uint8_t addr = buf[1];
+    uint32_t subaddr4byte = *(uint32_t *) &buf[2];
+    uint8_t subaddrsize = buf[6];
+    uint16_t dataSize2byte = *(uint16_t *) &buf[7];
     if (pack->cmd == write_i2c) {
-        status = HAL_I2C_Mem_Write(num_map_i2c[buf[0]], addr, subaddr4byte, subaddrsize, &buf[8], dataSize2byte, ~0);
+        status = HAL_I2C_Mem_Write(num_map_i2c[buf[0]], addr, subaddr4byte, subaddrsize, &buf[9], dataSize2byte, ~0);
         packToSend->cmd = reply | write_i2c;
         packToSend->length = sizeof(package_t) + 4;
         *(int32_t *) &bufToSend[0] = status;

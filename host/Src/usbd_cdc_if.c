@@ -32,6 +32,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+uint8_t cmdBuffer[1024];
 
 /* USER CODE END PV */
 
@@ -273,7 +274,6 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length) {
   */
 static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len) {
     /* USER CODE BEGIN 6 */
-    static uint8_t cmdBuffer[1024];
     //在原地处理
     static int8_t onPackage = 0;
     uint32_t idx = 0;//处理到当前缓存的第几个

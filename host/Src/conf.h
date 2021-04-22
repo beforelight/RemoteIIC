@@ -12,16 +12,16 @@ extern "C"{
 
 enum cmd_type {
     write_gpio = 0,
-    read_gpio,
-    write_i2c,
-    read_i2c,
-    write_spi,
-    read_spi,
-    transfer_spi,//全双工
-    host_printf,//仅单片机向主机发送，且不需要响应
+    read_gpio = 1,
+    write_i2c = 2,
+    read_i2c = 3,
+    write_spi = 4,
+    read_spi = 5,
+    transfer_spi = 6,//全双工
+    host_printf = 7,//仅单片机向主机发送，且不需要响应
 
     //对于每个cmd的响应定义为cmd|1<<7
-    reply = 1 << 7,
+    reply = (1 << 7),
 };
 
 #pragma pack(1)
