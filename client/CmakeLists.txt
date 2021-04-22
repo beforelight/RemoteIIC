@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(client)
+project(client C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
-
+add_link_options("/MAP:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     add_compile_options(-O2)
+    message("add_compile_options(-O2)")
 else ()
 #    add_compile_options(-g)
+    message("add_compile_options(-g)")
 endif ()
 
 #serial部分的
@@ -43,6 +45,16 @@ if (1)
     endif()
 endif ()
 
-set(client_src client.cpp conf.cpp)
-add_executable(test test.cpp ${client_src})
+#add_definitions(-D_C_INV_IMU_DEV_)
+#include_directories(/)
+#file(GLOB_RECURSE inv_imu_src c_inv_imu/*.c)
+#add_library(inv_imu STATIC ${inv_imu_src})
+
+add_subdirectory(c_inv_imu)
+link_libraries(inv_imu)
+add_definitions(-D_C_INV_IMU_DEV_)
+
+set(client_src client.cpp)
+add_executable(test test.cpp ${client_src} ${inv_imu_src})
+#target_link_libraries(test inv_imu)
 

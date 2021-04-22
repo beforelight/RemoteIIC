@@ -9,7 +9,19 @@
 #include<vector>
 #include<memory>
 #include<thread>
+#include<mutex>
 #include "serial/serial.h"
+
+#include<cstdio>
+static std::mutex ptf_mux;
+#define INV_NO_DEBUG
+#ifndef INV_NO_DEBUG
+#define INV_DEBUG_(fmt, ...) \
+    printf("%s:%d:debug: " fmt "%s\r\n", __FILE__, __LINE__, __VA_ARGS__)
+#define INV_DEBUG(...) ptf_mux.lock();INV_DEBUG_(__VA_ARGS__, "");fflush(stdout);ptf_mux.unlock()
+#else
+#define INV_DEBUG(...)
+#endif //INV_NO_DEBUG
 
 using std::string;
 using std::exception;
@@ -19,10 +31,11 @@ using std::endl;
 using std::vector;
 class client_t {
 public:
-    client_t();
+    client_t() {}
     int Init(string port,unsigned long baud = 115200);
     void AlternateCOM();
     static void ServerBackgrand(client_t* clt);
+    void CheckRecive();
 
     void GPIO_Write(int gpio,uint8_t val);
     uint8_t GPIO_Read(int gpio);

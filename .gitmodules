@@ -1,3 +1,6 @@
 [submodule "client/serial"]
 	path = client/serial
 	url = https://github.com/wjwwood/serial.git
+[submodule "client/c_inv_imu"]
+	path = client/c_inv_imu
+	url = https://github.com/beforelight/c_inv_imu.git
